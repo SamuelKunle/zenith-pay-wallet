@@ -1,38 +1,36 @@
 import { ArrowLeft, Search, Filter, ArrowUpRight, ArrowDownLeft, ShoppingBag, Smartphone, Zap, Download } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PremiumReceipt, ReceiptData } from "@/components/receipts/PremiumReceipt";
 import { StatusPill } from "@/components/states/StateUI";
 import { toast } from "@/hooks/use-toast";
+import { useTransactions } from "@/hooks/useTransactions";
+import type { TransactionCategory, TransactionDto } from "@/lib/api/types";
+import {
+  dateGroupLabel,
+  formatTxAmountSigned,
+  formatTxTimeShort,
+} from "@/lib/transactions/transactionUi";
 
-const tabs = ["All", "Sent", "Received", "Bills", "Merchant"];
+const tabs = ["All", "Sent", "Received", "Bills", "Merchant"] as const;
 
-interface Transaction {
+interface HistoryRow {
   id: string;
+  dto: TransactionDto;
+  occurredAtIso: string;
   type: "credit" | "debit";
-  category: "transfer" | "merchant" | "airtime" | "bills" | "received";
+  category: TransactionCategory;
   title: string;
   subtitle: string;
   amount: string;
   rawAmount: number;
+  feeCents: number;
   status: "success" | "pending" | "failed";
   time: string;
   date: string;
   ref: string;
 }
-
-const allTransactions: Transaction[] = [
-  { id: "1", type: "credit", category: "received", title: "From Emerson Obi", subtitle: "Transfer", amount: "+$50,000", rawAmount: 50000, status: "success", time: "2:30 PM", date: "Today", ref: "TXN-2024-K8F2M1" },
-  { id: "2", type: "debit", category: "merchant", title: "Shoprite Soho", subtitle: "QR Payment", amount: "-$12,450", rawAmount: 12450, status: "success", time: "1:15 PM", date: "Today", ref: "TXN-2024-P3Q7R4" },
-  { id: "3", type: "debit", category: "transfer", title: "To Avery Nwachukwu", subtitle: "Bank transfer", amount: "-$75,000", rawAmount: 75000, status: "pending", time: "12:45 PM", date: "Today", ref: "TXN-2024-B5N9W2" },
-  { id: "4", type: "debit", category: "airtime", title: "Carrier Airtime", subtitle: "08012345678", amount: "-$2,000", rawAmount: 2000, status: "success", time: "11:20 AM", date: "Today", ref: "TXN-2024-A1C6D8" },
-  { id: "5", type: "credit", category: "received", title: "From Kendall Adrian", subtitle: "Payment request", amount: "+$15,000", rawAmount: 15000, status: "success", time: "10:00 AM", date: "Today", ref: "TXN-2024-E4F8G3" },
-  { id: "6", type: "debit", category: "bills", title: "streaming TV Subscription", subtitle: "Bills payment", amount: "-$21,000", rawAmount: 21000, status: "failed", time: "9:30 AM", date: "Today", ref: "TXN-2024-H7J2L5" },
-  { id: "7", type: "credit", category: "received", title: "From Taylor Bakare", subtitle: "Transfer", amount: "+$120,000", rawAmount: 120000, status: "success", time: "6:00 PM", date: "Yesterday", ref: "TXN-2024-M9N4P6" },
-  { id: "8", type: "debit", category: "transfer", title: "To Fatima Yusuf", subtitle: "Bank transfer", amount: "-$35,000", rawAmount: 35000, status: "success", time: "3:30 PM", date: "Yesterday", ref: "TXN-2024-Q1R5S8" },
-  { id: "9", type: "debit", category: "merchant", title: "Chicken Republic", subtitle: "QR Payment", amount: "-$4,800", rawAmount: 4800, status: "success", time: "1:00 PM", date: "Yesterday", ref: "TXN-2024-T3U7V0" },
-];
 
 const categoryIcons = {
   transfer: ArrowUpRight,
@@ -58,7 +56,54 @@ const iconColors: Record<string, string> = {
   received: "text-success",
 };
 
-function txToReceipt(tx: Transaction): ReceiptData {
+function mapDtoToRow(d: TransactionDto): HistoryRow {
+  return {
+    id: d.id,
+    dto: d,
+    occurredAtIso: d.occurredAt,
+    type: d.direction === "credit" ? "credit" : "debit",
+    category: d.category,
+    title: d.title,
+    subtitle: d.subtitle,
+    amount: formatTxAmountSigned(d),
+    rawAmount: d.amountCents / 100,
+    feeCents: d.feeCents,
+    status: d.status,
+    time: formatTxTimeShort(d.occurredAt),
+    date: dateGroupLabel(d.occurredAt),
+    ref: d.reference,
+  };
+}
+
+function matchesTab(row: HistoryRow, tab: (typeof tabs)[number]): boolean {
+  switch (tab) {
+    case "All":
+      return true;
+    case "Sent":
+      return row.type === "debit";
+    case "Received":
+      return row.type === "credit";
+    case "Bills":
+      return row.category === "bills";
+    case "Merchant":
+      return row.category === "merchant";
+    default:
+      return true;
+  }
+}
+
+function matchesSearch(row: HistoryRow, query: string): boolean {
+  if (!query.trim()) return true;
+  const q = query.trim().toLowerCase();
+  return (
+    row.title.toLowerCase().includes(q) ||
+    row.subtitle.toLowerCase().includes(q) ||
+    row.ref.toLowerCase().includes(q)
+  );
+}
+
+function txToReceipt(tx: HistoryRow): ReceiptData {
+  const feeDollars = tx.feeCents / 100;
   const typeMap: Record<string, ReceiptData["type"]> = {
     transfer: "bank-transfer",
     received: "bank-transfer",
@@ -66,42 +111,72 @@ function txToReceipt(tx: Transaction): ReceiptData {
     airtime: "bill-payment",
     bills: "bill-payment",
   };
-  return {
+  const recipientNameTransfer = tx.title.replace(/^To\s+/i, "");
+  const senderNameCredit = tx.title.replace(/^From\s+/i, "");
+  const base = {
     type: typeMap[tx.category] || "bank-transfer",
     status: tx.status,
     amount: tx.rawAmount,
-    fee: tx.rawAmount > 5000 ? (tx.rawAmount > 50000 ? 50 : 25) : 10,
+    fee: feeDollars,
+    total: tx.type === "debit" ? tx.rawAmount + feeDollars : undefined,
     reference: tx.ref,
-    date: new Date(),
-    ...(tx.type === "debit" && tx.category === "transfer" ? {
-      sender: { name: "Charlie Oliver", detail: "Personal · Zenith Pay", avatar: "CO" },
-      recipient: { name: tx.title.replace("To ", ""), detail: tx.subtitle, verified: true },
-    } : {}),
-    ...(tx.type === "credit" ? {
-      sender: { name: tx.title.replace("From ", ""), detail: tx.subtitle },
-      recipient: { name: "Charlie Oliver", detail: "Personal · Zenith Pay", avatar: "CO" },
-    } : {}),
-    ...(tx.category === "merchant" ? {
-      merchant: { name: tx.title, detail: tx.subtitle },
-    } : {}),
-    ...(["airtime", "bills"].includes(tx.category) ? {
-      recipient: { name: tx.title, detail: tx.subtitle },
-      category: tx.category === "airtime" ? "Airtime" : "Bills",
-    } : {}),
-    source: "Personal · $1,245,800",
+    date: new Date(tx.occurredAtIso),
+    source: "Personal · Zenith Pay",
     channel: "Mobile App",
   };
+
+  if (tx.type === "debit" && tx.category === "transfer") {
+    return {
+      ...base,
+      sender: { name: "You", detail: "Personal · Zenith Pay", avatar: "YO" },
+      recipient: { name: recipientNameTransfer, detail: tx.subtitle, verified: true },
+    };
+  }
+  if (tx.type === "credit") {
+    return {
+      ...base,
+      sender: { name: senderNameCredit, detail: tx.subtitle },
+      recipient: { name: "You", detail: "Personal · Zenith Pay", avatar: "YO" },
+    };
+  }
+  if (tx.category === "merchant") {
+    return {
+      ...base,
+      merchant: { name: tx.title, detail: tx.subtitle },
+    };
+  }
+  if (tx.category === "airtime" || tx.category === "bills") {
+    return {
+      ...base,
+      recipient: { name: tx.title, detail: tx.subtitle },
+      category: tx.category === "airtime" ? "Airtime" : "Bills",
+    };
+  }
+  return base;
 }
 
 const TransactionHistoryPage = () => {
-  const [activeTab, setActiveTab] = useState("All");
-  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("All");
+  const [selectedTx, setSelectedTx] = useState<HistoryRow | null>(null);
+  const [search, setSearch] = useState("");
+  const { data, isPending, isError, refetch } = useTransactions();
 
-  const grouped = allTransactions.reduce((acc, tx) => {
-    if (!acc[tx.date]) acc[tx.date] = [];
-    acc[tx.date].push(tx);
-    return acc;
-  }, {} as Record<string, Transaction[]>);
+  const rows = useMemo(() => (data?.transactions ?? []).map(mapDtoToRow), [data?.transactions]);
+
+  const { groupOrder, groupMap } = useMemo(() => {
+    const filtered = rows.filter((r) => matchesTab(r, activeTab) && matchesSearch(r, search));
+    const order: string[] = [];
+    const map: Record<string, HistoryRow[]> = {};
+    for (const tx of filtered) {
+      const key = tx.date;
+      if (!map[key]) {
+        map[key] = [];
+        order.push(key);
+      }
+      map[key].push(tx);
+    }
+    return { groupOrder: order, groupMap: map };
+  }, [rows, activeTab, search]);
 
   // ─── Receipt detail view ───
   if (selectedTx) {
@@ -152,7 +227,12 @@ const TransactionHistoryPage = () => {
         <div className="px-5 pb-3">
           <div className="input-search">
             <Search className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-            <input type="text" placeholder="Search transactions..." />
+            <input
+              type="text"
+              placeholder="Search transactions..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
         <div className="flex gap-1.5 px-5 pb-3 overflow-x-auto hide-scrollbar">
@@ -173,39 +253,63 @@ const TransactionHistoryPage = () => {
       </header>
 
       <div className="px-5 py-4 md:px-8 space-y-6">
-        {Object.entries(grouped).map(([date, txs]) => (
-          <div key={date}>
-            <p className="text-label mb-2.5">{date}</p>
-            <div className="surface-content overflow-hidden">
-              {txs.map((tx, i) => {
-                const Icon = categoryIcons[tx.category];
-                return (
-                  <button 
-                    key={tx.id} 
-                    onClick={() => setSelectedTx(tx)}
-                    className={`flex items-center gap-3 px-4 py-3.5 w-full text-left hover:bg-surface-secondary transition-colors ${
-                      i < txs.length - 1 ? "border-b border-surface-border-subtle" : ""
-                    }`}
-                  >
-                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBgs[tx.category]}`}>
-                      <Icon className={`h-[17px] w-[17px] ${iconColors[tx.category]}`} strokeWidth={1.8} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-tx-title truncate">{tx.title}</p>
-                      <p className="text-meta mt-0.5">{tx.subtitle} · {tx.time}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className={`text-tx-amount ${tx.type === "credit" ? "text-success" : ""}`}>{tx.amount}</p>
-                      <div className="mt-1">
-                        <StatusPill status={tx.status} />
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+        {isPending && (
+          <p className="text-sm text-muted-foreground text-center py-12">Loading activity from the API…</p>
+        )}
+        {isError && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4 text-center space-y-3">
+            <p className="text-sm text-foreground">Could not load transactions.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
+            >
+              Retry
+            </button>
           </div>
-        ))}
+        )}
+        {!isPending && !isError && groupOrder.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-12">No transactions match this filter.</p>
+        )}
+        <AnimatePresence mode="popLayout">
+          {!isPending &&
+            !isError &&
+            groupOrder.map((date) => (
+              <motion.div key={date} layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+                <p className="text-label mb-2.5">{date}</p>
+                <div className="surface-content overflow-hidden">
+                  {(groupMap[date] ?? []).map((tx, i, arr) => {
+                    const Icon = categoryIcons[tx.category];
+                    return (
+                      <button
+                        key={tx.id}
+                        onClick={() => setSelectedTx(tx)}
+                        className={`flex items-center gap-3 px-4 py-3.5 w-full text-left hover:bg-surface-secondary transition-colors ${
+                          i < arr.length - 1 ? "border-b border-surface-border-subtle" : ""
+                        }`}
+                      >
+                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBgs[tx.category]}`}>
+                          <Icon className={`h-[17px] w-[17px] ${iconColors[tx.category]}`} strokeWidth={1.8} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-tx-title truncate">{tx.title}</p>
+                          <p className="text-meta mt-0.5">
+                            {tx.subtitle} · {tx.time}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`text-tx-amount ${tx.type === "credit" ? "text-success" : ""}`}>{tx.amount}</p>
+                          <div className="mt-1">
+                            <StatusPill status={tx.status} />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ))}
+        </AnimatePresence>
       </div>
     </div>
   );

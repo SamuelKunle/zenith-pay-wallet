@@ -2,18 +2,24 @@ import { Eye, EyeOff, Copy, Check, Wallet, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { motionConfig } from "@/components/PageTransition";
+import { useWalletBalance } from "@/hooks/useWalletBalance";
+import { formatUsdPartsFromCents } from "@/lib/format/money";
 
 const ease = motionConfig.ease;
 
 const BalanceCard = () => {
   const [visible, setVisible] = useState(true);
   const [copied, setCopied] = useState(false);
+  const { data, isPending, isError, refetch } = useWalletBalance();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText("1234567890");
+    const tag = data?.walletTag ?? "chioma_pay";
+    navigator.clipboard.writeText(tag);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const parts = data ? formatUsdPartsFromCents(data.availableCents) : null;
 
   return (
     <motion.div
@@ -38,7 +44,9 @@ const BalanceCard = () => {
               <span className="balance-text-strong text-[11px] font-semibold tracking-[0.03em]">Personal</span>
               <ChevronDown className="balance-text-muted h-3 w-3" strokeWidth={2.3} />
             </motion.button>
-            <span className="balance-text-muted text-[10px] font-bold uppercase tracking-[0.08em]">USD</span>
+            <span className="balance-text-muted text-[10px] font-bold uppercase tracking-[0.08em]">
+              {data?.currency ?? "USD"}
+            </span>
           </div>
 
           <motion.button
@@ -78,15 +86,26 @@ const BalanceCard = () => {
               exit={{ opacity: 0, filter: "blur(8px)", y: -4 }}
               transition={{ duration: 0.3, ease }}
             >
-              {visible ? (
+              {isError ? (
+                <div className="space-y-2">
+                  <p className="text-balance balance-text-strong">—</p>
+                  <button
+                    type="button"
+                    onClick={() => refetch()}
+                    className="balance-text-soft text-[11px] font-semibold underline underline-offset-2"
+                  >
+                    Tap to retry
+                  </button>
+                </div>
+              ) : isPending || !parts ? (
+                <p className="text-balance balance-text-muted tracking-[0.12em]">···</p>
+              ) : visible ? (
                 <p className="text-balance text-balance-card">
-                  $1,245,800
-                  <span className="balance-text-soft ml-0.5 text-[18px]">.50</span>
+                  ${parts.dollars}
+                  <span className="balance-text-soft ml-0.5 text-[18px]">.{parts.centsPart}</span>
                 </p>
               ) : (
-                <p className="text-balance balance-text-strong tracking-[0.18em]">
-                  $ ••••••
-                </p>
+                <p className="text-balance balance-text-strong tracking-[0.18em]">$ ••••••</p>
               )}
             </motion.div>
           </AnimatePresence>
@@ -102,7 +121,7 @@ const BalanceCard = () => {
             onClick={handleCopy}
             className="balance-surface-chip inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold tracking-[-0.01em] opacity-95 transition-opacity duration-200 ease-premium hover:opacity-100"
           >
-            <span className="balance-text-soft">@chioma_pay</span>
+            <span className="balance-text-soft">@{data?.walletTag ?? "chioma_pay"}</span>
             <AnimatePresence mode="wait" initial={false}>
               {copied ? (
                 <motion.div
@@ -129,7 +148,7 @@ const BalanceCard = () => {
           </motion.button>
 
           <AnimatePresence>
-            {visible && (
+            {visible && data?.weekCreditSummary && (
               <motion.span
                 initial={{ opacity: 0, x: 8 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -137,7 +156,7 @@ const BalanceCard = () => {
                 transition={{ duration: 0.25, ease }}
                 className="balance-text-muted text-[11px] font-medium"
               >
-                +$120K this week
+                {data.weekCreditSummary}
               </motion.span>
             )}
           </AnimatePresence>

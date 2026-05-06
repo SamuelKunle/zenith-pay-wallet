@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, CreditCard, Snowflake, Sun, Eye, EyeOff, Globe, ShoppingBag, Wifi, Copy, Check, Plus, Lock, ChevronRight, AlertTriangle, Shield, Fingerprint } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
+import { useTransactions } from "@/hooks/useTransactions";
+import { formatTxAmountSigned, formatTxCalendarWithTime, prettyCategory } from "@/lib/transactions/transactionUi";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface CardData {
@@ -29,13 +32,6 @@ const cardGradients = {
   slate: "from-[hsl(220_20%_25%)] via-[hsl(220_18%_30%)] to-[hsl(220_15%_20%)]",
 };
 
-const recentCardTx = [
-  { merchant: "Netflix Premium", amount: "-$6,500", time: "Today, 3:15 PM", category: "Entertainment", online: true },
-  { merchant: "Shoprite Soho", amount: "-$45,200", time: "Yesterday", category: "Shopping", online: false },
-  { merchant: "Uber Ride", amount: "-$3,800", time: "Yesterday", category: "Transport", online: false },
-  { merchant: "Apple iCloud", amount: "-$1,500", time: "3 days ago", category: "Subscription", online: true },
-];
-
 type View = "main" | "reveal" | "request" | "lost";
 
 const CardsPage = () => {
@@ -45,6 +41,13 @@ const CardsPage = () => {
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState<View>("main");
   const [revealAuth, setRevealAuth] = useState(false);
+
+  const { data: ledgerTxResponse, isPending: ledgerSpendLoading } = useTransactions();
+  const cardSpendPreview = useMemo(() => {
+    return (ledgerTxResponse?.transactions ?? [])
+      .filter((t) => t.direction === "debit" && (t.category === "merchant" || t.category === "bills"))
+      .slice(0, 4);
+  }, [ledgerTxResponse?.transactions]);
 
   const activeCard = cards[activeCardIndex];
 
@@ -344,23 +347,36 @@ const CardsPage = () => {
             <Link to="/history" className="text-[10px] font-semibold text-primary">See all</Link>
           </div>
           <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-            {recentCardTx.map((tx, i) => (
-              <div key={tx.merchant} className={`flex items-center gap-3 px-4 py-3 ${
-                i < recentCardTx.length - 1 ? "border-b border-border/15" : ""
-              }`}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-[12px] font-semibold text-foreground">{tx.merchant}</p>
-                    {tx.online && <Globe className="h-2.5 w-2.5 text-muted-foreground/70" strokeWidth={2} />}
+            {ledgerSpendLoading && (
+              <p className="px-4 py-5 text-[11px] text-muted-foreground text-center">Loading spend from ledger…</p>
+            )}
+            {!ledgerSpendLoading && cardSpendPreview.length === 0 && (
+              <p className="px-4 py-5 text-[11px] text-muted-foreground text-center">
+                No merchant-style debits yet—complete activity shows here from the wallet API.
+              </p>
+            )}
+            {!ledgerSpendLoading &&
+              cardSpendPreview.map((tx, i) => (
+                <div
+                  key={tx.id}
+                  className={`flex items-center gap-3 px-4 py-3 ${
+                    i < cardSpendPreview.length - 1 ? "border-b border-border/15" : ""
+                  }`}
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary">
+                    <CreditCard className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
                   </div>
-                  <p className="text-[10px] text-muted-foreground">{tx.category} · {tx.time}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-semibold text-foreground truncate">{tx.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {prettyCategory(tx.category)} · {formatTxCalendarWithTime(tx.occurredAt)}
+                    </p>
+                  </div>
+                  <p className="text-[12px] font-semibold text-foreground tabular-nums shrink-0">
+                    {formatTxAmountSigned(tx)}
+                  </p>
                 </div>
-                <p className="text-[12px] font-semibold text-foreground tabular-nums">{tx.amount}</p>
-              </div>
-            ))}
+              ))}
           </div>
         </div>
       </div>
@@ -368,7 +384,7 @@ const CardsPage = () => {
   );
 };
 
-function CardAction({ icon: Icon, label, onClick, danger }: { icon: any; label: string; onClick: () => void; danger?: boolean }) {
+function CardAction({ icon: Icon, label, onClick, danger }: { icon: LucideIcon; label: string; onClick: () => void; danger?: boolean }) {
   return (
     <button onClick={onClick} className="flex flex-col items-center gap-1 group">
       <div className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all group-active:scale-90 ${
@@ -381,7 +397,7 @@ function CardAction({ icon: Icon, label, onClick, danger }: { icon: any; label: 
   );
 }
 
-function ControlRow({ icon: Icon, label, sub, defaultOn }: { icon: any; label: string; sub: string; defaultOn: boolean }) {
+function ControlRow({ icon: Icon, label, sub, defaultOn }: { icon: LucideIcon; label: string; sub: string; defaultOn: boolean }) {
   const [on, setOn] = useState(defaultOn);
   return (
     <div className="flex items-center gap-3 px-4 py-3">

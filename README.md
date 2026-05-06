@@ -1,24 +1,61 @@
 # Zenith Pay Wallet
 
-Zenith Pay Wallet is a Next.js, React, and TypeScript client for a digital wallet product. Screens and flows are built so you can connect real payments, identity, notifications, session services, and reporting on the backend without redesigning UX.
+Zenith Pay Wallet is a **full-stack prototype** built with **Next.js**, **React**, and **TypeScript**: wallet UX backed by **Next.js Pages API routes** and small **server modules** you can swap for a real treasury, ledger, and processors **without rewriting screens**.
+
+Use it as:
+
+- **Product + integration reference** — routes and flows aligned with adapters and API shapes
+- **Local demo / QA harness** — in-memory ledger, quotes, transfers, activity feed, optional simulated funding
+- **Staging toward production** — replace server implementations and attach Postgres (see [`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql))
+
+---
+
+## Architecture at a glance
+
+| Layer | What lives here | Plug-and-play |
+| --- | --- | --- |
+| **UI** | `src/pages/` (React Router), shared components under `src/components/` | Screens stay stable; swap copy and visuals only |
+| **HTTP API** | `pages/api/**` (`/api/v1/...`) | Keep route contracts or version (`/api/v2`) when migrating |
+| **Pricing / rails contract** | `src/lib/adapters/payments.ts` — `PaymentsPort`, `mockPaymentsAdapter` | Implement **`PaymentsPort`** against your PSP or treasury; wired by `transferService` and quote endpoints |
+| **Ledger & activity** | `src/server/ledger/mockLedger.ts`, `transactionMemory.ts` | Replace with repositories over **`wallet_balances`** / **`wallet_transactions`** ([`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql)) |
+| **Orchestration** | `src/server/transfers/transferService.ts`, `src/server/wallet/fundService.ts`, `src/server/ids.ts` | Thin services: keep signatures, swap internals for DB + idempotency + webhooks |
+| **Persistence (reference)** | [`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql) | Run via your migration tool (Prisma / Drizzle / Flyway / Atlas); not executed by Next.js |
+
+**Extend adapters:** add more ports beside payments (for example `src/lib/adapters/notifications.ts`, `identity.ts`) and call them from new or existing API handlers—[**`docs/INTEGRATIONS.md`**](docs/INTEGRATIONS.md) tracks vendor and compliance checklists flow by flow.
+
+---
+
+## Environment variables
+
+**Local try-out:** you do **not** need any `.env` file. Run `npm install` and `npm run dev`; all prototype APIs (including **simulated funding** on `/fund-wallet`) work with defaults.
+
+Copy [`.env.example`](.env.example) to `.env.local` only when you want non-default behavior.
+
+| Variable | Scope | Purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_HIDE_INTEGRATION_CALLOUT` | Client | Hide `IntegrationReadinessBanner` on dashboard and wallet tools |
+| `ZENITH_DISABLE_SIMULATED_FUNDING` | Server | When **`true`**, `POST /api/v1/wallet/fund` returns **403**. Omit or leave unset locally so developers can still simulate credits; set **`true`** on internet-facing production |
+
+---
 
 ## Project overview
 
 Suited for:
 
-- Product builds where the backend and providers are phased in gradually
-- Design and engineering alignment on wallet, merchant, and security journeys
-- A clear frontend surface that maps cleanly to bounded integration contracts
+- Teams phasing in **real rails** while keeping the UX contract stable
+- **Bounded integration seams** — adapters, API routes, DDL that line up with the UI
+- A single deployable artifact (Next.js) for demos; split to **BFF + separate API** later if you prefer
+
+---
 
 ## Feature surface
 
-- Wallet dashboard with balances and activity
-- Transfers and payment journeys
-- Scan-to-pay and merchant QR experience
-- Card controls
-- Savings, rewards, and insights
-- Security, sessions, disputes, schedules, funding paths, payment requests
-- Responsive layouts and light/dark themes
+- Wallet dashboard with balance and activity (API-backed where noted)
+- Transfers with server-side quoting and ledger debit
+- Scan-to-pay and merchant QR journeys (UI scaffolding)
+- Cards, savings, insights (mix of illustrative and API-fed data)
+- Security, sessions, disputes, schedules, funding, request-money, notifications (tooling routes + adapter framing)
+- Responsive layouts and **light/dark** themes
 
 ### Operational & integration modules
 
@@ -26,30 +63,27 @@ Available from **Services → Wallet tools** (or directly by route):
 
 | Flow | Route |
 | --- | --- |
-| Funding (ACH / card / payroll entry points) | `/fund-wallet` |
+| Funding (ACH / card / payroll entry points + prototype simulate) | `/fund-wallet` |
 | Scheduled & recurring payments | `/scheduled-payments` |
 | Request-money links | `/request-money` |
 | Dispute center | `/disputes` |
 | Device & session management | `/sessions` |
 | Alert preferences | `/notification-preferences` |
 
-**Integration readiness strip:** `IntegrationReadinessBanner` on the dashboard and the modules above summarizes how the UI aligns with adapters. Hide it in production-branding deployments with:
+**Payments seam:** [`src/lib/adapters/payments.ts`](src/lib/adapters/payments.ts) (`PaymentsPort` + `mockPaymentsAdapter`).
 
-```bash
-NEXT_PUBLIC_HIDE_INTEGRATION_CALLOUT=true
-```
-
-**Payments seam:** see `src/lib/adapters/payments.ts` (`PaymentsPort` + `mockPaymentsAdapter`). Swap the adapter implementation for your processor or treasury service.
+---
 
 ## Tech stack
 
-- Next.js (app host & build)
-- React 18
-- TypeScript
-- Tailwind CSS
-- shadcn/ui (generated components under `src/components/ui`, configured in [`components.json`](components.json)) on top of Radix UI primitives
-- Framer Motion
-- Vitest + Testing Library (+ jsdom)
+- **Next.js** — build, SSR shell, **Pages API** (`pages/api/`)
+- **React 18** + **TypeScript**
+- **React Router** — in-app routing inside Next’s catch-all page `pages/[[...slug]].tsx`
+- **Tailwind CSS**, **shadcn/ui** (under `src/components/ui`, [`components.json`](components.json))
+- **TanStack Query** — client fetching against `/api/v1/*`
+- **Vitest** + Testing Library (+ jsdom), **ESLint**, **typescript-eslint**
+
+---
 
 ## Third-party open-source libraries (npm)
 
@@ -60,7 +94,7 @@ Everything below is declared in [`package.json`](package.json). Install with `np
 | **Framework** | [`next`](https://nextjs.org/), [`react`](https://react.dev/), [`react-dom`](https://react.dev/) |
 | **Client routing (in-app)** | [`react-router-dom`](https://reactrouter.com/) — shells the main experience inside Next’s `pages/` catch-all route |
 | **Styling & design tokens** | [`tailwindcss`](https://tailwindcss.com/), [`postcss`](https://postcss.org/), [`autoprefixer`](https://github.com/postcss/autoprefixer), [`tailwind-merge`](https://github.com/dcastil/tailwind-merge), [`tailwindcss-animate`](https://github.com/jamiebuilds/tailwindcss-animate), [`clsx`](https://github.com/lukeed/clsx), [`class-variance-authority`](https://github.com/joe-bell/cva), [`@tailwindcss/typography`](https://tailwindcss.com/docs/typography-plugin) *(dev plugin)* |
-| **Accessible primitives (UI)** | `@radix-ui/react-*` (accordion, alert-dialog, dialog, dropdown-menu, tooltip, toast, tabs, slider, scroll-area, select, etc.—see [`package.json`](package.json)) |
+| **Accessible primitives (UI)** | `@radix-ui/react-*` (see [`package.json`](package.json)) |
 | **Icons** | [`lucide-react`](https://lucide.dev/) |
 | **Fonts** | [`@fontsource-variable/plus-jakarta-sans`](https://fontsource.org/) |
 | **Theming** | [`next-themes`](https://github.com/pacocoursey/next-themes) |
@@ -69,65 +103,96 @@ Everything below is declared in [`package.json`](package.json). Install with `np
 | **Charts** | [`recharts`](https://recharts.org/) |
 | **Animation** | [`framer-motion`](https://www.framer.com/motion/) |
 | **Complementary UI widgets** | [`cmdk`](https://cmdk.paco.me/), [`embla-carousel-react`](https://www.embla-carousel.com/), [`input-otp`](https://input-otp.rodz.dev/), [`react-day-picker`](https://react-day-picker.js.org/), [`react-resizable-panels`](https://github.com/bvaughn/react-resizable-panels), [`sonner`](https://sonner.emilkowal.ski/), [`vaul`](https://github.com/emilkowalski/vaul) (drawer) |
-| **Browser compat metadata** *(runtime deps used by toolchain)* | [`browserslist`](https://github.com/browserslist/browserslist), [`caniuse-lite`](https://github.com/browserslist/caniuse-lite) |
-| **Testing & linting** *(dev)* | [`vitest`](https://vitest.dev/), [`@testing-library/react`](https://testing-library.com/docs/react-testing-library/intro/), [`@testing-library/jest-dom`](https://github.com/testing-library/jest-dom), [`jsdom`](https://github.com/jsdom/jsdom), [`eslint`](https://eslint.org/), [`typescript-eslint`](https://typescript-eslint.io/), related ESLint plugins—see [`package.json`](package.json) |
-
-Vitest resolves a **test runner toolchain** at install time that may pull in tooling such as Vite-compatible packages indirectly; consult `npm ls` if you harden SBOM/licensing.
+| **Browser compat metadata** *(toolchain)* | [`browserslist`](https://github.com/browserslist/browserslist), [`caniuse-lite`](https://github.com/browserslist/caniuse-lite) |
+| **Testing & linting** *(dev)* | [`vitest`](https://vitest.dev/), [`@testing-library/react`](https://testing-library.com/docs/react-testing-library/intro/), [`@testing-library/jest-dom`](https://github.com/testing-library/jest-dom), [`jsdom`](https://github.com/jsdom/jsdom), [`eslint`](https://eslint.org/), [`typescript-eslint`](https://typescript-eslint.io/) — see [`package.json`](package.json) |
 
 ---
 
-## External services & vendors (production integrations)
+## Backend API (prototype)
 
-This repository is **frontend-only**. Moving real money, identity, messaging, or dispute handling requires **your backend** talking to regulated or commercial providers. Below maps **areas of the UX** to the **categories of third parties** adopters normally wire in—the list is illustrative, not exhaustive.
+Next.js **Pages API** under [`pages/api/`](pages/api/) implements **v1** JSON endpoints. **Fees are always recomputed on the server** for transfers; the client uses quotes for display only.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/health` | Liveness JSON |
+| `GET` | `/api/v1/wallet/balance` | Wallet snapshot (balance, tag, summary) |
+| `GET` | `/api/v1/transactions` | Query: `limit` — activity feed (home, `/history`, cards preview) |
+| `POST` | `/api/v1/wallet/fund` | Body: `{ amountCents, channel }` (`ach` \| `debit` \| `payroll`) — **simulated** credit; disable with `ZENITH_DISABLE_SIMULATED_FUNDING=true` |
+| `POST` | `/api/v1/payments/quote` | Body: `{ amountCents }` — quote via `PaymentsPort` |
+| `POST` | `/api/v1/transfers` | Body: `{ amountCents, recipientTag? }` — ledger debit after server-side pricing |
+
+**Prototype limits:** balance and transactions live **in-memory** (`mockLedger`, `transactionMemory`). They **reset on cold start** (and typical serverless instance recycle). Seeded transactions are illustrative; **completed transfers** and **simulated funding** reconcile with the running balance.
+
+**Production path:** persist using [`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql), add auth and idempotency keys on mutate routes, replace `fund` with ACH/RTP/card settlement ingestion, and remove or hard-disable simulated funding.
+
+---
+
+## External services & vendors (production)
+
+Moving real money, identity, messaging, or dispute handling requires regulated or commercial providers. Below maps **app capabilities** to **typical vendor domains** ([**`docs/INTEGRATIONS.md`**](docs/INTEGRATIONS.md) has finer checklists).
 
 | App capability | Typical third-party / integration domain | Notes |
 | --- | --- | --- |
-| Bank balances & ledger | **Banking-as-a-Service (BaaS)**, sponsor bank APIs, ledger services | ACH balance, RTP/FedNow availability, holds, reconciliation |
-| Inbound wallet funding (`/fund-wallet`) | **ACH origination**, **card acquiring / tokenization**, **payroll ingest** partners | ACH (e.g. Plaid-linked debits vs. ACH API), PSP for cards, payroll file/RTP connectors |
-| Transfers & payouts | **Rails provider** + **custody/settlement bank** | Real-time ACH, RTP, wires, Swift—depends on region |
-| Card products (`/cards`) | **Issuer processor**, network membership (Visa/Mastercard), **BIN sponsors** | Program management and compliance-heavy |
-| Card & wallet top-ups | **Payment gateway / PSP** | Tokenized card APIs, PCI scope reduction |
-| KYC / identity (`/kyc`, onboarding) | **Identity verification**, **sanctions/watchlist**, **AML** tooling | OCR, liveness, risk scores—must match your jurisdictional regime |
-| Fraud & velocity | **Fraud orchestration**, **device intelligence**, **step-up MFA** vendors | Tie to transfers, login, and card events |
-| Push notifications | **APNs**, **Firebase Cloud Messaging (FCM)**, unified push gateways | Matches device OS; frontend only registers tokens |
-| SMS alerts | **SMS aggregators** (e.g. Twilio-class providers) | Consent and opt-in records required |
-| Email receipts / statements | **Transactional email** (ESP) or **cloud mail** APIs | Bounce handling, templates, compliance footers |
-| QR & merchant acceptance (`/merchant`, `/scan`) | **Acquirer / QR scheme** or **internal payment switch** | Often same PSP as online card |
-| Disputes & chargebacks (`/disputes`) | **Card network / acquirer dispute APIs**, **case management** | Evidence submission, representment SLAs |
-| Reports & exports (`/history` export action) | **Object storage**, **signed URLs**, **job queue** | PDF/CSV generation usually server-side |
-| Sessions & device trust (`/sessions`, security) | **Auth provider** (OIDC/OAuth2), **session store** (e.g. Redis), **device graph** | Revocation = server invalidates refresh tokens |
-| Hosting & edge | **Vercel**, **AWS**, **GCP**, **Cloudflare**, etc. | Next.js runs on Node; configure env and secrets per host |
-| Observability | **APM**, **logging**, **error tracking** | Not in repo; add at deploy time |
+| Bank balances & ledger | **BaaS**, sponsor bank APIs, ledger products | RTP/FedNow, holds, reconciliation |
+| Inbound funding (`/fund-wallet`) | **ACH**, **cards**, **payroll** connectors | Replace prototype `fund` POST with PSP webhooks → ledger |
+| Transfers & payouts | **Rails** + custody / settlement bank | Wires, RTP, internal book transfers |
+| Card products (`/cards`) | **Issuer processor**, networks, BIN sponsors | Heavy compliance surface |
+| KYC (`/kyc`) | Identity, sanctions, AML | Jurisdiction-specific |
+| Push / SMS / email | **APNs**, **FCM**, SMS ESPs, transactional email | Consent and templates |
+| QR & merchant (`/merchant`, `/scan`) | Acquirer / internal switch | Often same PSP as online |
+| Disputes (`/disputes`) | Network / acquirer dispute APIs | Evidence and SLAs |
+| Exports (`/history`) | **Object storage**, signed URLs, job queues | Statements server-side |
+| Sessions (`/sessions`) | **OIDC** provider, Redis-style session store | Server-side revocation |
+| Hosting | **Vercel**, **AWS**, **GCP**, etc. | Secrets via host env vars |
+| Observability | **APM**, logging, error tracking | Add at deploy time |
 
-**Adapter pattern in this repo:** start from `src/lib/adapters/payments.ts` (`PaymentsPort`) and add sibling ports (e.g. `notifications.ts`, `identity.ts`) as you implement providers—keep UI stable while swapping implementations.
-
-**Flow-by-flow checklists (backend + vendors):** [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) — funding, transfers, cards, KYC, merchant, disputes, schedules, notifications, exports, hosting.
+---
 
 ## Getting started
 
 ### Prerequisites
 
-- Node.js 18+ (recommended)
+- Node.js 18+
 - npm 9+ (or newer)
 
 ### Local development
 
 ```bash
-cd "/Users/samuelimac/Desktop/iMac/PublicGithubRepo/zenith-pay"
+git clone <your-fork-or-repo-url> zenith-pay
+cd zenith-pay
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). No `.env` setup required—ledger, transfers, history, and **Fund wallet → simulate** all work out of the box.
+
+Optional: `cp .env.example .env.local` if you want to hide the integration banner or disable simulated funding.
+
+---
+
+## Repository layout (integration-oriented)
+
+```
+pages/api/                  # REST surface (/api/v1/...)
+pages/[[...slug]].tsx       # Next catches all; React Router renders app routes
+src/lib/adapters/           # Ports — start with payments.ts
+src/server/                 # Ledger, transfers, funding, HTTP helpers
+src/server/ledger/          # Replace with DB-backed repos in production
+src/lib/api/               # Shared fetch helpers + DTO-aligned types
+src/lib/transactions/      # Presentation helpers for txn DTOs
+sql/zenith_pay_schema.sql   # Reference Postgres DDL (not auto-run)
+docs/INTEGRATIONS.md        # Vendor + ops checklists per flow
+```
+
+---
 
 ## Available scripts
 
 - `npm run dev` — Development server
 - `npm run build` — Production build
-- `npm run start` — Production server
+- `npm run start` — Production server (`next start`)
 - `npm run lint` — ESLint
-- `npm run test` — Vitest suite
-- `npm run test:watch` — Vitest watch mode
+- `npm run test` — Vitest
 
 ### Production run
 
@@ -136,11 +201,17 @@ npm run build
 npm run start
 ```
 
+Set **`ZENITH_DISABLE_SIMULATED_FUNDING=true`** in production if the app is reachable on the public internet so simulated credits cannot be posted.
+
+---
+
 ## Deployment notes
 
-- See **External services & vendors** above for the third-party landscape; this client expects your APIs to front those providers.
-- Extend `src/lib/adapters/` with additional ports (notifications, identity, disputes, ledger) next to `payments.ts` as backends go live.
-- Use **[`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md)** per release for concrete integration tasks (sanctions, idempotency, webhooks, etc.).
+- Treat **Pages API** as your BFF until you extract a standalone service; keep **JSON shapes** compatible with mobile or other clients if you split later.
+- Wire **OAuth / session middleware** ahead of mutate routes (`/transfers`, `/wallet/fund`) before any shared environment.
+- Use [**`docs/INTEGRATIONS.md`**](docs/INTEGRATIONS.md) for sanctions, idempotency, webhooks, and reconciliation tasks per release.
+
+---
 
 ## License
 

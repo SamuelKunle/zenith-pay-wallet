@@ -23,6 +23,8 @@ Tick items as you implement. Order can vary by jurisdiction and bank partner.
 
 **UI:** `/fund-wallet`
 
+Prototype `POST /api/v1/wallet/fund` is **on by default locally** (`npm run dev`, no `.env`). Set **`ZENITH_DISABLE_SIMULATED_FUNDING=true`** only where simulated credits must be off (see [`.env.example`](../.env.example)).
+
 | Step | Backend / orchestration | Third-party domain |
 | --- | --- | --- |
 | [ ] Instrument vaulting & consent | Persist user-approved funding sources (bank link, saved card tokens) | Card tokenization / bank-link SDKs |
@@ -49,6 +51,8 @@ Tick items as you implement. Order can vary by jurisdiction and bank partner.
 | [ ] Dispute hooks | Link out to case when user reports issue | Dispute / chargeback stack |
 
 **Code seam:** implement real fee/quote logic in an adapter that replaces [`mockPaymentsAdapter`](../src/lib/adapters/payments.ts).
+
+**Prototype API (this repo):** [`README.md § Backend API`](../README.md) documents `GET /api/v1/transactions`, `POST /api/v1/wallet/fund` *(simulated ACH/card/payroll credit for QA)*, `POST /api/v1/payments/quote`, and `POST /api/v1/transfers` wiring to [`src/server/transfers/transferService.ts`](../src/server/transfers/transferService.ts), [`src/server/wallet/fundService.ts`](../src/server/wallet/fundService.ts), and the in-memory ledger. [`sql/zenith_pay_schema.sql`](../sql/zenith_pay_schema.sql) maps the same concepts to Postgres. Replace these routes with persisted ledgers, idempotency keys, and real rails before any production traffic.
 
 ---
 
