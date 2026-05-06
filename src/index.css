@@ -639,3 +639,16 @@
     pointer-events: none;
   }
 }
+
+@layer utilities {
+  .interactive-focus:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .motion-safe-transition {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

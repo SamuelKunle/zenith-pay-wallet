@@ -12,3 +12,13 @@ export function formatUsdLineFromCents(cents: number): string {
   const { dollars, centsPart } = formatUsdPartsFromCents(cents);
   return `$${dollars}.${centsPart}`;
 }
+
+/** Debit outflow label: `−$12.42` using Unicode minus; `en-US` grouping. */
+export function formatUsdNegLineFromCents(cents: number): string {
+  return `−${formatUsdLineFromCents(Math.abs(Math.floor(cents)))}`;
+}
+
+/** Credit label: `+$285.00` */
+export function formatUsdPosLineFromCents(cents: number): string {
+  return `+${formatUsdLineFromCents(Math.abs(Math.floor(cents)))}`;
+}

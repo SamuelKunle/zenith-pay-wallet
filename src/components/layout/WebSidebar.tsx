@@ -34,7 +34,7 @@ const WebSidebar = () => {
     const link = (
       <Link
         to={item.path}
-        className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ease-premium ${
+        className={`interactive-focus group relative flex min-h-[44px] items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ease-premium ${
           collapsed ? "justify-center" : ""
         } ${
           isActive

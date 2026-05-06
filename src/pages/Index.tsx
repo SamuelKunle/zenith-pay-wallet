@@ -1,16 +1,20 @@
 import { Bell, Search, Lock, Sparkles, ChevronRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 import QuickActions from "@/components/dashboard/QuickActions";
 import TransactionList from "@/components/dashboard/TransactionList";
 import { useFavourites } from "@/contexts/FavouritesContext";
 import { ProtectionSummary } from "@/components/security/SecurityUI";
-import { ProtectionBanner } from "@/components/trust/TrustCopy";
 import MobileDrawer, { MobileDrawerTrigger } from "@/components/layout/MobileDrawer";
 import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
+import { showIntegrationCallout } from "@/lib/integration/integrationCallout";
+import { formatUsdLineFromCents } from "@/lib/format/money";
+
+const transportInsightLine = `${formatUsdLineFromCents(1_840_000)} this week vs ${formatUsdLineFromCents(1_500_000)} last week`;
 
 const Index = () => {
+  const navigate = useNavigate();
   const { favouriteServices } = useFavourites();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -41,11 +45,21 @@ const Index = () => {
         <div>
           <h1 className="text-page-title">Welcome back, Charlie</h1>
           <p className="text-caption mt-0.5">Here's your financial overview</p>
+          <Link
+            to="/landing"
+            className="inline-block mt-2 text-[11px] font-semibold text-muted-foreground hover:text-primary interactive-focus rounded-md px-1 py-2"
+          >
+            Public marketing site · Sign in flows
+          </Link>
         </div>
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 rounded-2xl bg-surface-primary border border-surface-border-subtle px-4 py-2.5 hover:bg-surface-secondary transition-colors">
+          <button
+            type="button"
+            onClick={() => navigate("/history", { state: { focusSearch: true } })}
+            className="flex items-center gap-2 rounded-2xl bg-surface-primary border border-surface-border-subtle px-4 py-2.5 min-h-[44px] hover:bg-surface-secondary transition-colors interactive-focus"
+          >
             <Search className="h-4 w-4 text-muted-foreground" />
-            <span className="text-caption">Search transactions...</span>
+            <span className="text-caption text-left">Search transactions…</span>
           </button>
           <Link to="/notifications" className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-primary border border-surface-border-subtle transition-colors hover:bg-surface-secondary">
             <Bell className="h-[17px] w-[17px] text-muted-foreground" strokeWidth={1.8} />
@@ -56,8 +70,14 @@ const Index = () => {
 
       {/* Content */}
       <div className="px-5 py-5 md:px-8 md:py-8">
-        <div className="max-w-2xl mb-5 md:max-w-none">
-          <IntegrationReadinessBanner />
+        <div className="max-w-2xl mb-5 md:max-w-none space-y-2">
+          {showIntegrationCallout() ? (
+            <IntegrationReadinessBanner />
+          ) : (
+            <p className="text-caption text-muted-foreground md:max-w-xl">
+              Balances and activity reflect your connected ledger and settlement policies.
+            </p>
+          )}
         </div>
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
           {/* Main column */}
@@ -108,7 +128,7 @@ const Index = () => {
                 <Sparkles className="h-3.5 w-3.5 text-primary" strokeWidth={2} />
                 <span className="text-card-label">Insight</span>
               </div>
-              <p className="text-caption">Transport spending up 23% this week — $18,400 vs $15,000 last week</p>
+              <p className="text-caption">Transport spending up 23% — {transportInsightLine}</p>
             </Link>
 
             {/* Quick services — only if user has favourites */}
@@ -157,7 +177,7 @@ const Index = () => {
               </div>
               <div className="flex-1">
                 <p className="text-card-label mb-0.5">Transport spending up 23%</p>
-                <p className="text-meta">$18,400 this week vs $15,000 last week</p>
+                <p className="text-meta">{transportInsightLine}</p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground/15 shrink-0" />
             </Link>
@@ -178,16 +198,11 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Trust footer */}
-        <div className="space-y-3 pt-8 pb-4">
-          <ProtectionBanner />
-          <div className="flex items-center justify-center gap-2">
-            <Lock className="h-3 w-3 text-muted-foreground/15" strokeWidth={2} />
-            <p className="text-legal tracking-[0.12em]">
-              Secured by Zenith Pay · FINRA Licensed · FDIC Insured
-            </p>
-          </div>
-        </div>
+        <footer className="pt-8 pb-10 px-5 text-center">
+          <p className="text-[10px] text-muted-foreground/80 max-w-md mx-auto leading-relaxed">
+            Demo wallet UX — integrations and regulated products depend on your issuing partners.
+          </p>
+        </footer>
       </div>
     </div>
   );

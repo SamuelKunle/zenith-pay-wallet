@@ -14,6 +14,11 @@ const navItems = [
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
+function pathMatchesNav(pathname: string, path: string): boolean {
+  if (path === "/") return pathname === "/" || pathname === "";
+  return pathname === path || pathname.startsWith(`${path}/`);
+}
+
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -30,7 +35,11 @@ const BottomNav = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  useEffect(() => { setIsOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  const scanActive = location.pathname === "/scan" || location.pathname.startsWith("/scan/");
 
   return (
     <>
@@ -54,7 +63,7 @@ const BottomNav = () => {
         <div className="bg-card dark:bg-card">
           <div className="flex items-center justify-around px-2 h-[56px]">
             {navItems.map((item) => {
-              const isActive = item.isCenter ? false : location.pathname === item.path;
+              const isActive = item.isCenter ? false : pathMatchesNav(location.pathname, item.path);
               const Icon = item.icon;
 
               if (item.isCenter) {
@@ -102,10 +111,12 @@ const BottomNav = () => {
                       whileTap={{ scale: 0.88 }}
                       transition={{ duration: 0.08 }}
                       onClick={() => setIsOpen((v) => !v)}
-                      className={`flex h-[48px] w-[48px] items-center justify-center rounded-2xl ring-[3px] ring-background transition-all duration-200 ease-premium ${
-                        isOpen 
-                          ? "bg-secondary shadow-card" 
-                          : "balance-gradient shadow-balance"
+                      className={`flex h-[48px] w-[48px] items-center justify-center rounded-2xl ring-[3px] ring-background transition-all duration-200 ease-premium interactive-focus ${
+                        isOpen
+                          ? "bg-secondary shadow-card"
+                          : scanActive && !isOpen
+                            ? "ring-primary/40 balance-gradient shadow-balance"
+                            : "balance-gradient shadow-balance"
                       }`}
                     >
                       <AnimatePresence mode="wait" initial={false}>
@@ -124,9 +135,11 @@ const BottomNav = () => {
                         </motion.div>
                       </AnimatePresence>
                     </motion.button>
-                    <span className={`mt-0.5 text-[9px] font-semibold transition-colors duration-150 ease-premium ${
-                      isOpen ? "text-muted-foreground" : "text-primary"
-                    }`}>
+                    <span
+                      className={`mt-0.5 text-[9px] font-semibold transition-colors duration-150 ease-premium ${
+                        isOpen ? "text-muted-foreground" : "text-primary"
+                      }`}
+                    >
                       Pay
                     </span>
                   </div>
@@ -137,7 +150,7 @@ const BottomNav = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className="relative flex flex-col items-center justify-center gap-0.5 py-2 w-[56px]"
+                  className="relative flex flex-col items-center justify-center gap-0.5 py-2 min-h-[56px] w-[56px] interactive-focus rounded-xl"
                 >
                   <motion.div
                     whileTap={{ scale: 0.82 }}

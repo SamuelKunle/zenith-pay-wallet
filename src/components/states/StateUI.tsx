@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { 
   Wifi, WifiOff, RefreshCw, AlertCircle, CheckCircle2, Clock, 
   Shield, FileText, Inbox, Wrench, Search, ArrowRight, 
@@ -9,16 +10,25 @@ import { ReactNode } from "react";
 
 // ─── Premium Loading Spinner ───
 export const PremiumSpinner = ({ size = "md", label }: { size?: "sm" | "md" | "lg"; label?: string }) => {
+  const reduced = usePrefersReducedMotion();
   const dims = { sm: "h-8 w-8", md: "h-12 w-12", lg: "h-16 w-16" };
   const stroke = { sm: "border-[1.5px]", md: "border-2", lg: "border-2" };
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="relative">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-          className={`${dims[size]} rounded-full ${stroke[size]} border-muted border-t-primary`}
-        />
+        {reduced ? (
+          <div
+            className={`${dims[size]} rounded-full ${stroke[size]} border-muted border-t-primary motion-safe-transition`}
+            style={{ opacity: 0.85 }}
+            aria-hidden
+          />
+        ) : (
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+            className={`${dims[size]} rounded-full ${stroke[size]} border-muted border-t-primary`}
+          />
+        )}
       </div>
       {label && <p className="text-caption animate-pulse">{label}</p>}
     </div>
@@ -42,11 +52,13 @@ interface StateSurfaceProps {
   compact?: boolean;
 }
 
-export const StateSurface = ({ icon, iconBg = "bg-secondary", title, subtitle, action, secondaryAction, children, compact }: StateSurfaceProps) => (
+export const StateSurface = ({ icon, iconBg = "bg-secondary", title, subtitle, action, secondaryAction, children, compact }: StateSurfaceProps) => {
+  const reduced = usePrefersReducedMotion();
+  return (
   <motion.div
-    initial={{ opacity: 0, scale: 0.97 }}
+    initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
     animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+    transition={{ duration: reduced ? 0 : 0.35, ease: [0.32, 0.72, 0, 1] }}
     className={`flex flex-col items-center text-center ${compact ? "py-8" : "py-14"} px-6`}
   >
     <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${iconBg} mb-5`}>
@@ -59,30 +71,53 @@ export const StateSurface = ({ icon, iconBg = "bg-secondary", title, subtitle, a
       <div className="flex flex-col items-center gap-2.5 mt-6 w-full max-w-xs">
         {action && (
           action.to ? (
-            <Link to={action.to} className="btn-primary text-center">{action.label}</Link>
+            <Link to={action.to} className="btn-primary interactive-focus text-center">{action.label}</Link>
           ) : (
-            <button onClick={action.onClick} className="btn-primary">{action.label}</button>
+            <button type="button" onClick={action.onClick} className="btn-primary interactive-focus">
+              {action.label}
+            </button>
           )
         )}
         {secondaryAction && (
           secondaryAction.to ? (
-            <Link to={secondaryAction.to} className="text-[12px] font-semibold text-primary">{secondaryAction.label}</Link>
+            <Link
+              to={secondaryAction.to}
+              className="interactive-focus inline-flex min-h-[44px] items-center justify-center rounded-lg px-2 text-[12px] font-semibold text-primary"
+            >
+              {secondaryAction.label}
+            </Link>
           ) : (
-            <button onClick={secondaryAction.onClick} className="text-[12px] font-semibold text-primary">{secondaryAction.label}</button>
+            <button
+              type="button"
+              onClick={secondaryAction.onClick}
+              className="interactive-focus inline-flex min-h-[44px] items-center justify-center rounded-lg px-2 text-[12px] font-semibold text-primary"
+            >
+              {secondaryAction.label}
+            </button>
           )
         )}
       </div>
     )}
   </motion.div>
-);
+  );
+};
 
 // ─── Pre-composed State Surfaces ───
 
-export const EmptyState = ({ 
-  icon, title, subtitle, action 
-}: { 
-  icon?: ReactNode; title: string; subtitle?: string; 
-  action?: { label: string; onClick?: () => void; to?: string } 
+export const EmptyState = ({
+  icon,
+  title,
+  subtitle,
+  action,
+  secondaryAction,
+  compact,
+}: {
+  icon?: ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: { label: string; onClick?: () => void; to?: string };
+  secondaryAction?: { label: string; onClick?: () => void; to?: string };
+  compact?: boolean;
 }) => (
   <StateSurface
     icon={icon || <Inbox className="h-7 w-7 text-muted-foreground/60" strokeWidth={1.5} />}
@@ -90,6 +125,8 @@ export const EmptyState = ({
     title={title}
     subtitle={subtitle}
     action={action}
+    secondaryAction={secondaryAction}
+    compact={compact}
   />
 );
 

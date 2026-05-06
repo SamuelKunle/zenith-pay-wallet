@@ -2,6 +2,7 @@ import { Shield, ArrowRight, Lock, TrendingUp, Sparkles, CreditCard, PiggyBank, 
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 import { motionConfig } from "@/components/PageTransition";
 
 const ease = motionConfig.ease;
@@ -35,6 +36,7 @@ const journeySteps = [
 ];
 
 const WelcomePage = () => {
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
@@ -66,10 +68,10 @@ const WelcomePage = () => {
             <AnimatePresence mode="wait">
               <motion.div
                 key={current}
-                initial={{ opacity: 0, y: 16 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -16 }}
-                transition={{ duration: 0.4, ease }}
+                exit={prefersReducedMotion ? undefined : { opacity: 0, y: -16 }}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.4, ease }}
               >
                 <h2 className="text-[36px] xl:text-[42px] font-extrabold text-white leading-[1.1] tracking-[-0.03em] mb-4">
                   {slides[current].title}

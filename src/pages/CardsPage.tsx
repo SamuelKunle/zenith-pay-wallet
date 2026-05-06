@@ -4,6 +4,7 @@ import { ArrowLeft, CreditCard, Snowflake, Sun, Eye, EyeOff, Globe, ShoppingBag,
 import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { useTransactions } from "@/hooks/useTransactions";
+import { EmptyState } from "@/components/states/StateUI";
 import { formatTxAmountSigned, formatTxCalendarWithTime, prettyCategory } from "@/lib/transactions/transactionUi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -351,9 +352,14 @@ const CardsPage = () => {
               <p className="px-4 py-5 text-[11px] text-muted-foreground text-center">Loading spend from ledger…</p>
             )}
             {!ledgerSpendLoading && cardSpendPreview.length === 0 && (
-              <p className="px-4 py-5 text-[11px] text-muted-foreground text-center">
-                No merchant-style debits yet—complete activity shows here from the wallet API.
-              </p>
+              <EmptyState
+                compact
+                icon={<ShoppingBag className="h-7 w-7 text-muted-foreground/70" strokeWidth={1.5} />}
+                title="No card spend yet"
+                subtitle="Debit-style payments from your wallet ledger show here."
+                action={{ label: "Send money", to: "/transfer" }}
+                secondaryAction={{ label: "View activity", to: "/history" }}
+              />
             )}
             {!ledgerSpendLoading &&
               cardSpendPreview.map((tx, i) => (

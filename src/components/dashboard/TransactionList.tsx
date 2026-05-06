@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { EmptyState } from "@/components/states/StateUI";
 import { useMemo } from "react";
 import { useTransactions } from "@/hooks/useTransactions";
 import type { TransactionCategory, TransactionDto } from "@/lib/api/types";
@@ -51,7 +52,13 @@ const TransactionList = () => {
         </div>
       )}
       {!isPending && !isError && rows.length === 0 && (
-        <p className="text-sm text-muted-foreground py-8 text-center">No wallet activity yet.</p>
+        <EmptyState
+          compact
+          title="No wallet activity yet"
+          subtitle="Send money or simulate funding — then refresh this feed."
+          action={{ label: "Send money", to: "/transfer" }}
+          secondaryAction={{ label: "Fund wallet", to: "/fund-wallet" }}
+        />
       )}
       {!isPending && !isError && rows.length > 0 && (
         <div className="surface-content overflow-hidden">
@@ -63,7 +70,7 @@ const TransactionList = () => {
               <Link
                 to="/history"
                 key={tx.id}
-                className={`flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-secondary ${
+                className={`interactive-focus flex min-h-[44px] items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-surface-secondary ${
                   i < rows.length - 1 ? "border-b border-surface-border-subtle" : ""
                 }`}
               >

@@ -48,14 +48,14 @@ export interface ReceiptData {
 }
 
 // ─── Formatting helpers ───
-const fmtMoney = (val: number, currency = "$") => 
-  `${currency}${val.toLocaleString("en-NG", { minimumFractionDigits: val % 1 !== 0 ? 2 : 0 })}`;
+const fmtMoney = (val: number, currency = "$") =>
+  `${currency}${val.toLocaleString("en-US", { minimumFractionDigits: val % 1 !== 0 ? 2 : 0, maximumFractionDigits: 2 })}`;
 
-const fmtDate = (date: Date) => 
-  date.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+const fmtDate = (date: Date) =>
+  date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
 
-const fmtTime = (date: Date) => 
-  date.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit", hour12: true });
+const fmtTime = (date: Date) =>
+  date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
 
 const fmtRef = (ref: string) => ref;
 

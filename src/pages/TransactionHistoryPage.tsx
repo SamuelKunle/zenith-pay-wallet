@@ -1,6 +1,6 @@
 import { ArrowLeft, Search, Filter, ArrowUpRight, ArrowDownLeft, ShoppingBag, Smartphone, Zap, Download } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PremiumReceipt, ReceiptData } from "@/components/receipts/PremiumReceipt";
 import { StatusPill } from "@/components/states/StateUI";
@@ -12,6 +12,7 @@ import {
   formatTxAmountSigned,
   formatTxTimeShort,
 } from "@/lib/transactions/transactionUi";
+import { ListRowSkeleton } from "@/components/states/AsyncContent";
 
 const tabs = ["All", "Sent", "Received", "Bills", "Merchant"] as const;
 
@@ -156,10 +157,21 @@ function txToReceipt(tx: HistoryRow): ReceiptData {
 }
 
 const TransactionHistoryPage = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("All");
   const [selectedTx, setSelectedTx] = useState<HistoryRow | null>(null);
   const [search, setSearch] = useState("");
   const { data, isPending, isError, refetch } = useTransactions();
+
+  useEffect(() => {
+    const st = location.state as { focusSearch?: boolean } | null;
+    if (st?.focusSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+      navigate(".", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   const rows = useMemo(() => (data?.transactions ?? []).map(mapDtoToRow), [data?.transactions]);
 
@@ -228,10 +240,13 @@ const TransactionHistoryPage = () => {
           <div className="input-search">
             <Search className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
             <input
-              type="text"
-              placeholder="Search transactions..."
+              ref={searchInputRef}
+              type="search"
+              placeholder="Search transactions…"
+              autoComplete="off"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              className="interactive-focus rounded-md min-h-[44px]"
             />
           </div>
         </div>
@@ -240,7 +255,8 @@ const TransactionHistoryPage = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-all ${
+              type="button"
+              className={`shrink-0 rounded-full px-3.5 py-2 min-h-[40px] text-[11px] font-semibold transition-all interactive-focus ${
                 activeTab === tab
                   ? "bg-foreground text-background"
                   : "text-muted-foreground hover:bg-muted"
@@ -254,22 +270,50 @@ const TransactionHistoryPage = () => {
 
       <div className="px-5 py-4 md:px-8 space-y-6">
         {isPending && (
-          <p className="text-sm text-muted-foreground text-center py-12">Loading activity from the API…</p>
+          <div className="surface-content overflow-hidden rounded-2xl">
+            <ListRowSkeleton rows={6} />
+          </div>
         )}
         {isError && (
-          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4 text-center space-y-3">
-            <p className="text-sm text-foreground">Could not load transactions.</p>
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 px-4 py-4 text-center space-y-3 mx-5">
+            <p className="text-sm text-foreground">Could not load wallet activity.</p>
             <button
               type="button"
               onClick={() => refetch()}
-              className="text-sm font-semibold text-primary underline-offset-2 hover:underline"
+              className="text-sm font-semibold text-primary underline-offset-2 hover:underline min-h-[44px] px-2 interactive-focus rounded-md"
             >
               Retry
             </button>
           </div>
         )}
         {!isPending && !isError && groupOrder.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-12">No transactions match this filter.</p>
+          <div className="text-center px-6 py-10 space-y-4">
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              {rows.length === 0
+                ? "No transactions yet — send funds or simulate funding from the Funding flow."
+                : "No transactions match your search or filter."}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center items-stretch">
+              <Link to="/transfer" className="btn-primary text-center px-6 min-h-[48px] flex items-center justify-center interactive-focus">
+                Send money
+              </Link>
+              <Link to="/fund-wallet" className="rounded-2xl border border-input bg-secondary px-6 min-h-[48px] flex items-center justify-center text-sm font-semibold interactive-focus hover:bg-muted/60">
+                Fund wallet
+              </Link>
+            </div>
+            {rows.length > 0 && activeTab !== "All" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("All");
+                  setSearch("");
+                }}
+                className="text-sm font-semibold text-primary interactive-focus px-3 py-2 rounded-lg"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         )}
         <AnimatePresence mode="popLayout">
           {!isPending &&
@@ -282,9 +326,10 @@ const TransactionHistoryPage = () => {
                     const Icon = categoryIcons[tx.category];
                     return (
                       <button
+                        type="button"
                         key={tx.id}
                         onClick={() => setSelectedTx(tx)}
-                        className={`flex items-center gap-3 px-4 py-3.5 w-full text-left hover:bg-surface-secondary transition-colors ${
+                        className={`flex items-center gap-3 px-4 py-3 min-h-[52px] w-full text-left hover:bg-surface-secondary transition-colors interactive-focus rounded-none ${
                           i < arr.length - 1 ? "border-b border-surface-border-subtle" : ""
                         }`}
                       >

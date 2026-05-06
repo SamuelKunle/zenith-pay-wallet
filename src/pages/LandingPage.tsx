@@ -1,9 +1,10 @@
 import { Shield, ArrowRight, Send, CreditCard, PiggyBank, QrCode, Zap, Lock, CheckCircle2, Star, TrendingUp, Users, Smartphone, BarChart3, Globe, Fingerprint, Eye, ChevronRight, Menu, X, ArrowUpRight, Moon, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { useState } from "react";
 import { useTheme } from "next-themes";
 import { motionConfig } from "@/components/PageTransition";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
 
 const ease = motionConfig.ease;
 
@@ -21,11 +22,13 @@ const testimonials = [
 ];
 
 const LandingPage = () => {
+  const prefersReducedMotion = usePrefersReducedMotion();
   const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <MotionConfig reducedMotion={prefersReducedMotion ? "always" : "user"}>
+      <div className="min-h-screen bg-background">
       {/* ─── Navigation ─── */}
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-2xl" style={{ borderBottom: "1px solid hsl(var(--surface-border-subtle))" }}>
         <div className="max-w-[1200px] mx-auto flex items-center justify-between px-5 md:px-8 h-[56px]">
@@ -764,7 +767,8 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-    </div>
+      </div>
+    </MotionConfig>
   );
 };
 
