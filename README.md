@@ -101,6 +101,8 @@ This repository is **frontend-only**. Moving real money, identity, messaging, or
 
 **Adapter pattern in this repo:** start from `src/lib/adapters/payments.ts` (`PaymentsPort`) and add sibling ports (e.g. `notifications.ts`, `identity.ts`) as you implement providers—keep UI stable while swapping implementations.
 
+**Flow-by-flow checklists (backend + vendors):** [`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md) — funding, transfers, cards, KYC, merchant, disputes, schedules, notifications, exports, hosting.
+
 ## Getting started
 
 ### Prerequisites
@@ -138,6 +140,7 @@ npm run start
 
 - See **External services & vendors** above for the third-party landscape; this client expects your APIs to front those providers.
 - Extend `src/lib/adapters/` with additional ports (notifications, identity, disputes, ledger) next to `payments.ts` as backends go live.
+- Use **[`docs/INTEGRATIONS.md`](docs/INTEGRATIONS.md)** per release for concrete integration tasks (sanctions, idempotency, webhooks, etc.).
 
 ## License
 
