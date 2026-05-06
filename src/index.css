@@ -1,0 +1,641 @@
+@import url('@fontsource-variable/plus-jakarta-sans/index.css');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+    /* ─── Core surfaces ─── */
+    --background: 220 16% 97%;
+    --foreground: 220 32% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 32% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 32% 8%;
+
+    /* ─── Brand ─── */
+    --primary: 164 58% 26%;
+    --primary-foreground: 0 0% 100%;
+
+    /* ─── Neutrals ─── */
+    --secondary: 220 12% 93%;
+    --secondary-foreground: 220 22% 14%;
+
+    --muted: 220 10% 95%;
+    --muted-foreground: 220 10% 32%;
+
+    /* ─── Accent — warm gold, used sparingly ─── */
+    --accent: 38 60% 50%;
+    --accent-foreground: 38 50% 12%;
+
+    /* ─── Status — desaturated, precise ─── */
+    --destructive: 4 52% 48%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 164 42% 32%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 55% 48%;
+    --warning-foreground: 38 45% 12%;
+
+    --pending: 38 48% 50%;
+    --pending-foreground: 38 40% 12%;
+
+    --info: 215 48% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --reward: 38 50% 48%;
+    --reward-foreground: 38 45% 12%;
+
+    /* ─── Borders & inputs ─── */
+    --border: 220 12% 91%;
+    --input: 220 12% 89%;
+    --ring: 164 58% 26%;
+
+    --radius: 0.875rem;
+
+    /* ─── Sidebar ─── */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 22% 14%;
+    --sidebar-primary: 164 58% 26%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 12% 96%;
+    --sidebar-accent-foreground: 220 22% 14%;
+    --sidebar-border: 220 12% 92%;
+    --sidebar-ring: 164 58% 26%;
+
+    /* ─── Fintech tokens ─── */
+    --balance-gradient-from: 164 52% 24%;
+    --balance-gradient-via: 168 42% 26%;
+    --balance-gradient-to: 174 35% 20%;
+    --balance-card-text: 0 0% 100%;
+    --quick-action-bg: 164 20% 95%;
+    --quick-action-icon: 164 58% 26%;
+    --merchant-primary: 225 45% 46%;
+    --merchant-primary-foreground: 0 0% 100%;
+    --nav-active: 164 58% 26%;
+    --nav-inactive: 220 10% 34%;
+    --transaction-credit: 164 40% 30%;
+    --transaction-debit: 4 40% 44%;
+    --chip-success-bg: 164 25% 94%;
+    --chip-success-text: 164 38% 26%;
+    --chip-pending-bg: 38 30% 94%;
+    --chip-pending-text: 38 42% 28%;
+    --chip-failed-bg: 4 28% 95%;
+    --chip-failed-text: 4 40% 38%;
+    --shadow-card: 220 20% 72%;
+    --glow-primary: 164 58% 26%;
+
+    /* ─── Surface system ─── */
+    --surface-primary: 0 0% 100%;
+    --surface-secondary: 220 14% 98%;
+    --surface-tertiary: 220 12% 95%;
+    --surface-elevated: 0 0% 100%;
+    --surface-inset: 220 14% 96%;
+    --surface-overlay: 0 0% 100%;
+    --surface-border: 220 12% 91%;
+    --surface-border-subtle: 220 10% 94%;
+  }
+
+  .dark {
+    /* ─── Core surfaces — deep navy-charcoal, never pure black ─── */
+    --background: 225 20% 7%;
+    --foreground: 220 14% 96%;
+
+    --card: 225 18% 11%;
+    --card-foreground: 220 14% 96%;
+
+    --popover: 225 16% 13%;
+    --popover-foreground: 220 16% 95%;
+
+    /* ─── Brand — warm teal, slightly lifted for dark ─── */
+    --primary: 164 42% 42%;
+    --primary-foreground: 0 0% 100%;
+
+    /* ─── Neutrals — graphite undertone ─── */
+    --secondary: 225 14% 16%;
+    --secondary-foreground: 220 12% 88%;
+
+    --muted: 225 12% 14%;
+    --muted-foreground: 220 8% 72%;
+
+    /* ─── Accent — gold stays warm ─── */
+    --accent: 38 48% 54%;
+    --accent-foreground: 38 42% 14%;
+
+    /* ─── Status — precise, desaturated but legible ─── */
+    --destructive: 4 45% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 164 38% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 48% 52%;
+    --warning-foreground: 38 38% 14%;
+
+    --info: 215 42% 56%;
+    --info-foreground: 0 0% 100%;
+
+    --reward: 38 44% 54%;
+    --reward-foreground: 38 36% 14%;
+
+    /* ─── Borders & inputs — subtle graphite edges ─── */
+    --border: 225 14% 18%;
+    --input: 225 14% 18%;
+    --ring: 164 42% 42%;
+
+    /* ─── Sidebar — layered depth ─── */
+    --sidebar-background: 225 16% 10%;
+    --sidebar-foreground: 220 12% 90%;
+    --sidebar-primary: 164 42% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 14% 14%;
+    --sidebar-accent-foreground: 220 12% 90%;
+    --sidebar-border: 225 14% 16%;
+    --sidebar-ring: 164 42% 42%;
+
+    /* ─── Fintech tokens ─── */
+    --balance-gradient-from: 164 42% 28%;
+    --balance-gradient-via: 168 34% 24%;
+    --balance-gradient-to: 176 28% 18%;
+    --balance-card-text: 0 0% 100%;
+    --quick-action-bg: 225 14% 15%;
+    --quick-action-icon: 164 38% 44%;
+    --merchant-primary: 225 36% 52%;
+    --merchant-primary-foreground: 0 0% 100%;
+    --nav-active: 164 42% 42%;
+    --nav-inactive: 220 8% 72%;
+    --transaction-credit: 164 36% 46%;
+    --transaction-debit: 4 38% 50%;
+    --chip-success-bg: 164 25% 16%;
+    --chip-success-text: 164 34% 58%;
+    --chip-pending-bg: 38 24% 16%;
+    --chip-pending-text: 38 38% 58%;
+    --chip-failed-bg: 4 24% 16%;
+    --chip-failed-text: 4 35% 58%;
+    --shadow-card: 225 20% 3%;
+    --glow-primary: 164 42% 38%;
+
+    /* ─── Surface system — rich layered depth ─── */
+    --surface-primary: 225 18% 11%;
+    --surface-secondary: 225 17% 9%;
+    --surface-tertiary: 225 16% 14%;
+    --surface-elevated: 225 18% 13%;
+    --surface-inset: 225 18% 8%;
+    --surface-overlay: 225 17% 14%;
+    --surface-border: 225 16% 18%;
+    --surface-border-subtle: 225 12% 16%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  html, body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+    letter-spacing: -0.01em;
+  }
+
+  @media (max-width: 767px) {
+    html, body, * {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    ::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+@layer utilities {
+  .balance-gradient {
+    background: linear-gradient(
+      155deg,
+      hsl(var(--balance-gradient-from)) 0%,
+      hsl(var(--balance-gradient-via)) 50%,
+      hsl(var(--balance-gradient-to)) 100%
+    );
+  }
+
+  .merchant-gradient {
+    background: linear-gradient(
+      155deg,
+      hsl(var(--merchant-primary)) 0%,
+      hsl(225 50% 36%) 100%
+    );
+  }
+
+  .text-balance-card {
+    color: hsl(var(--balance-card-text));
+  }
+
+  .balance-text-strong {
+    color: hsl(var(--balance-card-text) / 0.98);
+  }
+
+  .balance-text-soft {
+    color: hsl(var(--balance-card-text) / 0.82);
+  }
+
+  .balance-text-muted {
+    color: hsl(var(--balance-card-text) / 0.62);
+  }
+
+  .balance-surface-chip {
+    background-color: hsl(var(--balance-card-text) / 0.14);
+    border: 1px solid hsl(var(--balance-card-text) / 0.08);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ─── Surface System ─── */
+
+  /* Hero surface — balance card, branded hero areas */
+  .surface-hero {
+    @apply rounded-3xl shadow-balance relative overflow-hidden;
+  }
+
+  /* Content surface — primary cards, transaction lists */
+  .surface-content {
+    background: hsl(var(--surface-primary));
+    border: 1px solid hsl(var(--surface-border-subtle));
+    @apply rounded-2xl shadow-card;
+  }
+
+  /* Utility surface — secondary info, shortcuts, metadata */
+  .surface-utility {
+    background: hsl(var(--surface-secondary));
+    border: 1px solid hsl(var(--surface-border-subtle));
+    @apply rounded-2xl shadow-none;
+  }
+
+  /* Soft surface — no border, ambient background lift */
+  .surface-soft {
+    background: hsl(var(--surface-tertiary));
+    @apply rounded-2xl;
+  }
+
+  /* Inset surface — recessed areas, input containers */
+  .surface-inset {
+    background: hsl(var(--surface-inset));
+    @apply rounded-xl;
+  }
+
+  /* Elevated surface — modals, sheets, popovers */
+  .surface-elevated {
+    background: hsl(var(--surface-overlay));
+    border: 1px solid hsl(var(--surface-border-subtle));
+    @apply rounded-2xl shadow-elevated;
+  }
+
+  /* Interactive surface — hoverable cards and links */
+  .surface-interactive {
+    background: hsl(var(--surface-primary));
+    border: 1px solid hsl(var(--surface-border-subtle));
+    @apply rounded-2xl shadow-card;
+    transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .surface-interactive:hover {
+    @apply shadow-card-hover;
+    border-color: hsl(var(--surface-border));
+    transform: translateY(-1px);
+  }
+  .surface-interactive:active {
+    transform: translateY(0) scale(0.995);
+    transition-duration: 0.1s;
+  }
+
+  .glass {
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  .dark .glass {
+    background: hsl(var(--card) / 0.7);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+  }
+
+  .card-lift {
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1), box-shadow 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+  }
+  .card-lift:active {
+    transform: translateY(0);
+    transition-duration: 0.1s;
+  }
+
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      hsla(0, 0%, 100%, 0.04) 45%,
+      hsla(0, 0%, 100%, 0.08) 50%,
+      hsla(0, 0%, 100%, 0.04) 55%,
+      transparent 70%
+    );
+    animation: shimmer-sweep 5s ease-in-out infinite;
+  }
+  .dark .shimmer::after {
+    background: linear-gradient(
+      110deg,
+      transparent 30%,
+      hsla(0, 0%, 100%, 0.025) 45%,
+      hsla(0, 0%, 100%, 0.05) 50%,
+      hsla(0, 0%, 100%, 0.025) 55%,
+      transparent 70%
+    );
+  }
+
+  @keyframes shimmer-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* ─── Typography System ─── */
+
+  /* Hero balance — the most important number on screen */
+  .text-balance {
+    @apply text-[36px] md:text-[44px] font-extrabold tabular-nums tracking-[-0.03em] leading-[1];
+    font-feature-settings: "tnum" 1, "ss01" 1;
+  }
+
+  /* Transfer / receipt amount — secondary hero number */
+  .text-amount {
+    @apply text-[28px] md:text-[32px] font-bold tabular-nums tracking-[-0.02em] leading-[1.1];
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Display heading — page-level statement */
+  .text-display {
+    @apply text-[24px] md:text-[30px] font-extrabold tracking-[-0.025em] leading-[1.15];
+  }
+
+  /* Page title — top of each page */
+  .text-page-title {
+    @apply text-[16px] font-bold text-foreground tracking-[-0.01em] leading-snug;
+  }
+
+  /* Section header — module labels */
+  .section-header {
+    @apply text-[12px] font-bold text-foreground tracking-[-0.005em];
+  }
+
+  /* Section link — subtle action beside section headers */
+  .section-link {
+    @apply text-[11px] font-semibold text-primary tracking-normal;
+  }
+
+  /* Transaction title — list item primary text */
+  .text-tx-title {
+    @apply text-[13px] font-semibold text-foreground tracking-[-0.005em] leading-snug;
+  }
+
+  /* Transaction amount — list item money */
+  .text-tx-amount {
+    @apply text-[13px] font-bold tabular-nums text-foreground tracking-[-0.01em];
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Receipt text — confirmation screens */
+  .text-receipt {
+    @apply text-[13px] font-semibold text-foreground tabular-nums tracking-[-0.005em];
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Receipt total — larger receipt number */
+  .text-receipt-total {
+    @apply text-[22px] font-bold tabular-nums text-foreground tracking-[-0.02em] leading-none;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Label — uppercase micro label */
+  .text-label {
+    @apply text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.08em];
+  }
+
+  /* Caption — secondary descriptive text */
+  .text-caption {
+    @apply text-[11px] text-muted-foreground leading-relaxed;
+  }
+
+  /* Metadata — timestamps, small details */
+  .text-meta {
+    @apply text-[10px] text-muted-foreground tabular-nums tracking-normal;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Button text — action labels */
+  .text-button {
+    @apply text-[13px] font-semibold tracking-[-0.005em];
+  }
+
+  /* Card label — small labels inside cards */
+  .text-card-label {
+    @apply text-[11px] font-bold text-foreground tracking-[-0.005em];
+  }
+
+  /* Legal — footer disclaimers */
+  .text-legal {
+    @apply text-[9px] text-muted-foreground/40 leading-relaxed tracking-[0.04em];
+  }
+
+  /* Status label — chips and status indicators */
+  .text-status {
+    @apply text-[9px] font-bold uppercase tracking-[0.06em];
+  }
+
+  /* Currency symbol helper — slightly lighter weight beside amounts */
+  .text-currency {
+    @apply font-semibold opacity-50;
+  }
+
+  /* Decimal portion of amounts — de-emphasized */
+  .text-decimal {
+    @apply font-semibold opacity-40;
+  }
+
+  /* ─── Chip / Badge System ─── */
+
+  .chip-success {
+    @apply rounded-full px-2.5 py-0.5 text-status text-success;
+    background-color: hsl(var(--success) / 0.07);
+  }
+
+  .chip-pending {
+    @apply rounded-full px-2.5 py-0.5 text-status text-warning;
+    background-color: hsl(var(--warning) / 0.07);
+  }
+
+  .chip-failed {
+    @apply rounded-full px-2.5 py-0.5 text-status text-destructive;
+    background-color: hsl(var(--destructive) / 0.07);
+  }
+
+  .chip-info {
+    @apply rounded-full px-2.5 py-0.5 text-status text-info;
+    background-color: hsl(var(--info) / 0.07);
+  }
+
+  .chip-neutral {
+    @apply rounded-full bg-secondary px-2.5 py-0.5 text-status text-muted-foreground;
+  }
+
+  /* ─── Form System ─── */
+
+  .form-section {
+    @apply space-y-4;
+  }
+
+  .form-group {
+    @apply space-y-1.5;
+  }
+
+  .form-label {
+    @apply text-[11px] font-bold text-foreground uppercase tracking-[0.06em] pl-0.5;
+  }
+
+  .form-helper {
+    @apply text-[10px] text-muted-foreground pl-0.5;
+  }
+
+  .input-premium {
+    @apply w-full rounded-xl border border-input bg-card px-4 py-3 text-[14px] font-semibold text-foreground;
+    @apply transition-all duration-200;
+  }
+  .input-premium::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+  .input-premium:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+    border-color: transparent;
+  }
+
+  .input-composite {
+    @apply flex items-center gap-2.5 rounded-xl border border-input bg-card px-4 py-3;
+    @apply transition-all duration-200;
+  }
+  .input-composite:focus-within {
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+    border-color: transparent;
+  }
+  .input-composite input {
+    @apply flex-1 bg-transparent text-[14px] font-semibold text-foreground outline-none;
+  }
+  .input-composite input::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .input-search {
+    @apply flex items-center gap-2.5 rounded-2xl border border-input bg-card px-4 py-3;
+    @apply transition-all duration-200;
+  }
+  .input-search:focus-within {
+    box-shadow: 0 0 0 2px hsl(var(--ring));
+    border-color: transparent;
+  }
+  .input-search input {
+    @apply flex-1 bg-transparent text-[13px] font-semibold text-foreground outline-none;
+  }
+  .input-search input::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  .input-amount {
+    @apply bg-transparent text-center text-[42px] font-extrabold text-foreground outline-none tabular-nums;
+    letter-spacing: -0.03em;
+    font-feature-settings: "tnum" 1;
+  }
+  .input-amount::placeholder {
+    color: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  .otp-input {
+    @apply flex h-12 w-10 items-center justify-center rounded-xl bg-card text-center text-[20px] font-bold text-foreground;
+    @apply transition-all duration-200;
+    border: 2px solid hsl(var(--input));
+  }
+  .otp-input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3);
+  }
+  .otp-input.filled {
+    border-color: hsl(var(--primary));
+  }
+
+  .amount-chip {
+    @apply rounded-full bg-card px-3.5 py-1.5 text-[11px] font-semibold text-muted-foreground;
+    @apply transition-all duration-200;
+    border: 1px solid hsl(var(--input));
+  }
+  .amount-chip:hover {
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+  }
+  .amount-chip.active {
+    border-color: hsl(var(--primary));
+    color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.06);
+  }
+
+  /* ─── Button System ─── */
+
+  .btn-primary {
+    @apply w-full rounded-2xl py-4 text-[15px] font-bold text-white shadow-balance;
+    @apply transition-all;
+    background: linear-gradient(
+      155deg,
+      hsl(var(--balance-gradient-from)) 0%,
+      hsl(var(--balance-gradient-via)) 50%,
+      hsl(var(--balance-gradient-to)) 100%
+    );
+  }
+  .btn-primary:hover {
+    opacity: 0.95;
+  }
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+}
