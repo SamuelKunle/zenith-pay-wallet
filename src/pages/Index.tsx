@@ -12,12 +12,15 @@ import MobileDrawer, { MobileDrawerTrigger } from "@/components/layout/MobileDra
 import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { showIntegrationCallout } from "@/lib/integration/integrationCallout";
 import { formatUsdLineFromCents } from "@/lib/format/money";
+import { useAuth, getSessionGreetingName } from "@/contexts/AuthContext";
 
 const transportInsightLine = `${formatUsdLineFromCents(1_840_000)} this week vs ${formatUsdLineFromCents(1_500_000)} last week`;
 
 const Index = () => {
   const navigate = useNavigate();
   const { favouriteServices } = useFavourites();
+  const { session } = useAuth();
+  const greetingName = getSessionGreetingName(session);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -34,7 +37,9 @@ const Index = () => {
             <MobileDrawerTrigger onClick={() => setDrawerOpen(true)} />
             <div>
               <p className="text-meta">Good morning</p>
-              <p className="text-[15px] font-bold text-foreground leading-tight tracking-[-0.01em]">Charlie</p>
+              <p className="text-[15px] font-bold text-foreground leading-tight tracking-[-0.01em]">
+                {greetingName}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -49,7 +54,7 @@ const Index = () => {
       {/* Desktop Header */}
       <header className="hidden lg:flex items-center justify-between px-8 py-5 border-b border-surface-border-subtle">
         <div>
-          <h1 className="text-page-title">Welcome back, Charlie</h1>
+          <h1 className="text-page-title">Welcome back, {greetingName}</h1>
           <p className="text-caption mt-0.5">Here's your financial overview</p>
           <Link
             to="/landing"

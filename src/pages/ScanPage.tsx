@@ -66,6 +66,9 @@ const ScanPage = () => {
   const [note, setNote] = useState("");
   const [pin, setPin] = useState(["", "", "", ""]);
   const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
+  /** Demo “torch”: brightens the viewfinder; real devices would attach to camera torch APIs. */
+  const [torchOn, setTorchOn] = useState(false);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const handleCopy = () => {
     setCopied(true);
@@ -113,6 +116,12 @@ const ScanPage = () => {
       amountCents: Math.round(rawAmount * 100),
     });
   }, [state, rawAmount]);
+
+  useEffect(() => {
+    if (state !== "scan") setTorchOn(false);
+  }, [state]);
+
+  const advanceScanToRecipient = () => setState("recipient");
 
   const handlePinChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -345,6 +354,16 @@ const ScanPage = () => {
       <Screen dark>
         {/* Full dark immersive scanner */}
         <div className="absolute inset-0 bg-[hsl(220_25%_4%)]" />
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 z-[11] transition-opacity duration-300 ${
+            torchOn ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 42%, rgba(255,255,255,0.16) 0%, transparent 58%)",
+          }}
+        />
 
         {/* Header — floating over content */}
         <header className="relative z-20 flex items-center justify-between px-5 pt-[env(safe-area-inset-top,12px)] pb-2">
@@ -388,7 +407,8 @@ const ScanPage = () => {
             />
 
             <motion.button
-              onClick={() => setState("recipient")}
+              type="button"
+              onClick={advanceScanToRecipient}
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, ease }}
@@ -465,28 +485,58 @@ const ScanPage = () => {
             transition={{ delay: 0.35, duration: 0.35, ease }}
             className="flex items-center gap-5"
           >
-            {[
-              { icon: Flashlight, label: "Light" },
-              { icon: ImageIcon, label: "Gallery" },
-            ].map((ctrl) => {
-              const Icon = ctrl.icon;
-              return (
-                <button
-                  key={ctrl.label}
-                  className="flex flex-col items-center gap-2 group"
-                >
-                  <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-white/[0.06] backdrop-blur-sm group-hover:bg-white/[0.1] group-active:scale-[0.93] transition-all">
-                    <Icon
-                      className="h-[19px] w-[19px] text-white/50"
-                      strokeWidth={1.6}
-                    />
-                  </div>
-                  <span className="text-[9px] font-semibold text-white/25 tracking-wide">
-                    {ctrl.label}
-                  </span>
-                </button>
-              );
-            })}
+            <input
+              ref={galleryInputRef}
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) advanceScanToRecipient();
+              }}
+            />
+            <button
+              type="button"
+              aria-label={torchOn ? "Turn off light" : "Turn on light"}
+              aria-pressed={torchOn}
+              onClick={() => setTorchOn((v) => !v)}
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div
+                className={`flex h-[52px] w-[52px] items-center justify-center rounded-2xl backdrop-blur-sm group-active:scale-[0.93] transition-all ${
+                  torchOn
+                    ? "bg-primary/25 ring-1 ring-primary/40"
+                    : "bg-white/[0.06] group-hover:bg-white/[0.1]"
+                }`}
+              >
+                <Flashlight
+                  className={`h-[19px] w-[19px] transition-colors ${torchOn ? "text-primary" : "text-white/50"}`}
+                  strokeWidth={1.6}
+                />
+              </div>
+              <span className="text-[9px] font-semibold text-white/25 tracking-wide">
+                Light
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Choose QR image from gallery"
+              onClick={() => galleryInputRef.current?.click()}
+              className="flex flex-col items-center gap-2 group"
+            >
+              <div className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-white/[0.06] backdrop-blur-sm group-hover:bg-white/[0.1] group-active:scale-[0.93] transition-all">
+                <ImageIcon
+                  className="h-[19px] w-[19px] text-white/50"
+                  strokeWidth={1.6}
+                />
+              </div>
+              <span className="text-[9px] font-semibold text-white/25 tracking-wide">
+                Gallery
+              </span>
+            </button>
           </motion.div>
         </div>
 

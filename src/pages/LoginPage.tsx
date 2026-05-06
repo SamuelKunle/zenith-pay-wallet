@@ -1,7 +1,8 @@
 import { ArrowLeft, Eye, EyeOff, Shield, Fingerprint, Lock, CheckCircle2, AlertCircle, Loader2, HelpCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthSignInError } from "@/lib/auth";
 import { getTelemetry } from "@/lib/telemetry";
 import { TelemetryEvents } from "@/lib/telemetry/events";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,32 +12,66 @@ const ease = motionConfig.ease;
 
 type AuthState = "idle" | "loading" | "error" | "locked";
 
+/** Demo fallback when biometrics is used without typing an identifier first (no real WebAuthn). */
+const DEMO_IDENTIFIER_FALLBACK = "chioma@email.com";
+
 const LoginPage = () => {
-  const { signInWithCredentials } = useAuth();
+  const { signInWithCredentials, isAuthenticated } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [authState, setAuthState] = useState<AuthState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (isAuthenticated) navigate("/", { replace: true });
+  }, [isAuthenticated, navigate]);
+
+  const runSignIn = async (method: "password" | "biometric", id: string, pw: string) => {
+    setAuthState("loading");
+    setErrorMessage("");
+    try {
+      if (method === "biometric") {
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      await signInWithCredentials(id, pw);
+      getTelemetry().track(TelemetryEvents.LOGIN_SUCCESS, { method });
+      navigate("/", { replace: true });
+    } catch (e) {
+      setAuthState("error");
+      setErrorMessage(
+        e instanceof AuthSignInError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Unable to sign in. Please try again.",
+      );
+    } finally {
+      setAuthState("idle");
+    }
+  };
+
   const handleLogin = () => {
-    if (!email || !password) {
+    const id = identifier.trim();
+    const pw = password.trim();
+    if (!id || !pw) {
       setAuthState("error");
       setErrorMessage("Please enter your email and password");
       return;
     }
-    setAuthState("loading");
-    setTimeout(() => {
-      setAuthState("idle");
-      signInWithCredentials(email, password);
-      getTelemetry().track(TelemetryEvents.LOGIN_SUCCESS, { method: "password" });
-      navigate("/");
-    }, 1600);
+    void runSignIn("password", id, pw);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") handleLogin();
+  const handleBiometric = () => {
+    const id = identifier.trim() || DEMO_IDENTIFIER_FALLBACK;
+    void runSignIn("biometric", id, "biometric-demo");
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (authState === "loading") return;
+    handleLogin();
   };
 
   return (
@@ -164,36 +199,60 @@ const LoginPage = () => {
           </AnimatePresence>
 
           {/* Form */}
-          <motion.div {...fadeInUp} transition={{ delay: 0.04 }} className="space-y-4 mb-5">
+          <motion.form
+            {...fadeInUp}
+            transition={{ delay: 0.04 }}
+            className="space-y-4 mb-5"
+            onSubmit={handleSubmit}
+            noValidate
+          >
             <div className="space-y-1.5">
-              <label className="form-label">Phone or Email</label>
+              <label htmlFor="login-identifier" className="form-label">
+                Phone or Email
+              </label>
               <input
+                id="login-identifier"
+                name="identifier"
                 type="text"
                 placeholder="08012345678 or chioma@email.com"
                 className="input-premium"
-                value={email}
-                onChange={(e) => { setEmail(e.target.value); setAuthState("idle"); }}
-                onKeyDown={handleKeyDown}
-                autoComplete="email"
+                value={identifier}
+                onChange={(e) => {
+                  setIdentifier(e.target.value);
+                  setAuthState("idle");
+                }}
+                autoComplete="username"
+                disabled={authState === "loading"}
               />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="form-label">Password</label>
-                <button className="text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors">
+                <label htmlFor="login-password" className="form-label">
+                  Password
+                </label>
+                <Link
+                  to="/support"
+                  className="text-[11px] font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
                   Forgot password?
-                </button>
+                </Link>
               </div>
               <div className="input-composite">
                 <input
+                  id="login-password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setAuthState("idle"); }}
-                  onKeyDown={handleKeyDown}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setAuthState("idle");
+                  }}
                   autoComplete="current-password"
+                  disabled={authState === "loading"}
                 />
                 <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="shrink-0 p-1 rounded-md hover:bg-surface-secondary transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
@@ -205,46 +264,51 @@ const LoginPage = () => {
                 </button>
               </div>
             </div>
-          </motion.div>
 
-          {/* CTA */}
-          <motion.div {...fadeInUp} transition={{ delay: 0.08 }}>
-            <button
-              onClick={handleLogin}
-              disabled={authState === "loading"}
-              className="btn-primary flex items-center justify-center gap-2"
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {authState === "loading" ? (
-                  <motion.div
-                    key="loading"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex items-center gap-2"
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Signing in securely...</span>
-                  </motion.div>
-                ) : (
-                  <motion.span
-                    key="idle"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    Sign In
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
-          </motion.div>
+            {/* CTA */}
+            <motion.div {...fadeInUp} transition={{ delay: 0.08 }}>
+              <button
+                type="submit"
+                disabled={authState === "loading"}
+                className="btn-primary flex items-center justify-center gap-2 w-full"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {authState === "loading" ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center gap-2"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Signing in securely...</span>
+                    </motion.div>
+                  ) : (
+                    <motion.span
+                      key="idle"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      Sign In
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+            </motion.div>
+          </motion.form>
 
           {/* Biometric */}
           <motion.div {...fadeInUp} transition={{ delay: 0.12 }} className="flex items-center justify-center mt-7">
-            <button className="flex flex-col items-center gap-2 group">
+            <button
+              type="button"
+              className="flex flex-col items-center gap-2 group"
+              disabled={authState === "loading"}
+              onClick={handleBiometric}
+            >
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-200 group-hover:scale-105 group-active:scale-95"
                 style={{ backgroundColor: "hsl(var(--primary) / 0.06)" }}
               >
@@ -272,10 +336,13 @@ const LoginPage = () => {
 
           {/* Footer trust */}
           <motion.div {...fadeInUp} transition={{ delay: 0.2 }} className="mt-8 flex flex-col items-center gap-3">
-            <button className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/80 hover:text-muted-foreground transition-colors">
+            <Link
+              to="/support"
+              className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground/80 hover:text-muted-foreground transition-colors"
+            >
               <HelpCircle className="h-3 w-3" strokeWidth={2} />
               Need help accessing your account?
-            </button>
+            </Link>
             <div className="flex items-center gap-1.5">
               <Lock className="h-2.5 w-2.5 text-muted-foreground/80" strokeWidth={2.5} />
               <p className="text-[9px] text-muted-foreground/80 tracking-[0.08em]">

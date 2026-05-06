@@ -41,6 +41,8 @@ Copy [`.env.example`](.env.example) to `.env.local` only when you want non-defau
 | `NEXT_PUBLIC_HIDE_INTEGRATION_CALLOUT` | Client | Hide `IntegrationReadinessBanner` on dashboard and wallet tools |
 | `NEXT_PUBLIC_FF_INSIGHTS_BETA` | Client | When **`true`**, show **Beta** on Insights |
 | `NEXT_PUBLIC_FF_SCHEDULED_BETA` | Client | When **`true`**, show **Beta** on scheduled payments |
+| `NEXT_PUBLIC_AUTH_DRIVER` | Client | **`mock`** (default, offline demo) or **`api`** to use HTTP login via `NEXT_PUBLIC_AUTH_API_BASE` — see `src/lib/auth/apiAuthDriver.ts` |
+| `NEXT_PUBLIC_AUTH_API_BASE` | Client | Origin for IdP calls when driver is **`api`** (e.g. `https://api.example.com`; expects `POST /v1/auth/login` + JSON mapped in code) |
 | `ZENITH_DISABLE_SIMULATED_FUNDING` | Server | When **`true`**, `POST /api/v1/wallet/fund` returns **403**. Omit or leave unset locally so developers can still simulate credits; set **`true`** on internet-facing production |
 
 ---

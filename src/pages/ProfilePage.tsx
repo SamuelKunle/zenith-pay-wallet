@@ -116,9 +116,11 @@ const ProfilePage = () => {
         <button
           type="button"
           onClick={() => {
-            getTelemetry().track(TelemetryEvents.LOGOUT, { subject: session.subject });
-            signOut();
-            navigate("/login");
+            void (async () => {
+              getTelemetry().track(TelemetryEvents.LOGOUT, { subject: session.subject });
+              await signOut();
+              navigate("/login");
+            })();
           }}
           className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 w-full shadow-card hover:bg-destructive/5 transition-colors interactive-focus min-h-[44px]"
         >
