@@ -137,8 +137,8 @@ const TransactionHistoryPage = () => {
             aria-label="Export statements"
             onClick={() =>
               toast({
-                title: "Export prepared (demo)",
-                description: "Production would queue CSV/PDF generation and deliver a signed download URL.",
+                title: "Export requested",
+                description: "Serve CSV/PDF from your reporting service and return a time-limited signed download URL.",
               })
             }
             className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60 hover:bg-secondary transition-colors"

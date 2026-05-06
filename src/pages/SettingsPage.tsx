@@ -99,7 +99,7 @@ const SettingsPage = () => {
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[13px] font-bold text-foreground">Devices & sessions</p>
-                <p className="text-[11px] font-medium text-muted-foreground">Revoke stray logins (demo)</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Revoke trusted devices & sessions</p>
               </div>
               <ChevronRight className="h-4 w-4 text-foreground/20 shrink-0" />
             </Link>
@@ -137,7 +137,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <p className="text-center text-[10px] font-semibold text-foreground/25 py-4 tracking-wide">ZENITH PAY WALLET • v1.0.0 • DEMO BUILD</p>
+        <p className="text-center text-[10px] font-semibold text-foreground/25 py-4 tracking-wide">ZENITH PAY WALLET • v1.0.0</p>
       </div>
     </div>
   );

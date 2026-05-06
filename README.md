@@ -1,65 +1,64 @@
 # Zenith Pay Wallet
 
-Zenith Pay Wallet is a premium digital wallet demo built with Next.js, React, and TypeScript. It showcases production-style fintech user journeys, including transfers, scan-to-pay, merchant flows, card controls, savings, rewards, and security-focused UX.
+Zenith Pay Wallet is a Next.js, React, and TypeScript client for a digital wallet product. Screens and flows are built so you can connect real payments, identity, notifications, session services, and reporting on the backend without redesigning UX.
 
-## Project Overview
+## Project overview
 
-This repository is designed as a high-fidelity frontend demo for digital wallet use cases. It is ideal for:
+Suited for:
 
-- Product demos and stakeholder walkthroughs
-- UI/UX validation for fintech workflows
-- Frontend architecture reference for wallet apps
-- Future integration with real payments, KYC, and notification providers
+- Product builds where the backend and providers are phased in gradually
+- Design and engineering alignment on wallet, merchant, and security journeys
+- A clear frontend surface that maps cleanly to bounded integration contracts
 
-## Key Features
+## Feature surface
 
 - Wallet dashboard with balances and activity
-- Transfer and payment journeys
+- Transfers and payment journeys
 - Scan-to-pay and merchant QR experience
-- Cards management and controls
-- Savings, rewards, and insights modules
-- Security and profile settings
-- Responsive mobile and desktop layouts
-- Light and dark theme support
+- Card controls
+- Savings, rewards, and insights
+- Security, sessions, disputes, schedules, funding paths, payment requests
+- Responsive layouts and light/dark themes
 
-### Demo modules (frontend-only)
+### Operational & integration modules
 
-These screens mirror **deployment-grade** wallet capabilities without live payment rails. Open **Services → Wallet tools**, or use direct routes:
+Available from **Services → Wallet tools** (or directly by route):
 
 | Flow | Route |
 | --- | --- |
-| Fund wallet (ACH / card / payroll previews) | `/fund-wallet` |
+| Funding (ACH / card / payroll entry points) | `/fund-wallet` |
 | Scheduled & recurring payments | `/scheduled-payments` |
-| Request-money link generator | `/request-money` |
-| Dispute center mock cases | `/disputes` |
-| Device & session revocation UX | `/sessions` |
-| Granular notification preferences | `/notification-preferences` |
+| Request-money links | `/request-money` |
+| Dispute center | `/disputes` |
+| Device & session management | `/sessions` |
+| Alert preferences | `/notification-preferences` |
 
-- **`DemoBanner`** (`src/components/demo/DemoBanner.tsx`) appears on the home dashboard and new modules when demo mode is on.
-- **`NEXT_PUBLIC_DEMO_MODE`**: set to `false` to hide demo-only callouts (defaults to demo on).
+**Integration readiness strip:** `IntegrationReadinessBanner` on the dashboard and the modules above summarizes how the UI aligns with adapters. Hide it in production-branding deployments with:
 
-### Integration seams
+```bash
+NEXT_PUBLIC_HIDE_INTEGRATION_CALLOUT=true
+```
 
-- `src/lib/adapters/payments.ts` — placeholder `PaymentsPort` with a `demoPaymentsAdapter` for fee quotes. Swap for real API clients behind the same interface when you wire a backend.
+**Payments seam:** see `src/lib/adapters/payments.ts` (`PaymentsPort` + `mockPaymentsAdapter`). Swap the adapter implementation for your processor or treasury service.
 
-## Tech Stack
+## Tech stack
 
 - Next.js
 - React 18
 - TypeScript
 - Tailwind CSS
-- shadcn/ui and Radix UI
+- shadcn/ui + Radix UI
 - Framer Motion
 - Vitest + Testing Library
 
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
 - Node.js 18+ (recommended)
 - npm 9+ (or newer)
 
-### Local Development
+### Local development
 
 ```bash
 cd "/Users/samuelimac/Desktop/iMac/PublicGithubRepo/zenith-pay"
@@ -69,28 +68,27 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Available Scripts
+## Available scripts
 
-- `npm run dev` - Start the development server
-- `npm run build` - Build the app for production
-- `npm run start` - Start the production server
-- `npm run lint` - Run ESLint checks
-- `npm run test` - Run the Vitest test suite
-- `npm run test:watch` - Run tests in watch mode
+- `npm run dev` — Development server
+- `npm run build` — Production build
+- `npm run start` — Production server
+- `npm run lint` — ESLint
+- `npm run test` — Vitest suite
+- `npm run test:watch` — Vitest watch mode
 
-## Production Run
+### Production run
 
 ```bash
 npm run build
 npm run start
 ```
 
-## Deployment Notes
+## Deployment notes
 
-- This project is currently demo-first and frontend-focused.
-- Core financial and compliance features (real money movement, live KYC, fraud decisioning, push/SMS delivery) should be integrated via backend services and provider APIs for production use.
-- Next.js build output is optimized for standard modern deployment targets.
+- Connect money movement, KYC, fraud, and messaging through backend APIs and regulated providers—the UI assumes those services exist behind stable contracts.
+- Add more adapters (e.g. notifications, disputes, ledger) beside `payments.ts` following the same port pattern.
 
 ## License
 
-This project is provided for demo and educational purposes unless otherwise specified by the repository owner.
+Provided for use according to repository owner preferences.

@@ -2,7 +2,7 @@ import { ArrowLeft, CalendarClock, Plus, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import PageTransition from "@/components/PageTransition";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -27,7 +27,7 @@ const ScheduledPaymentsPage = () => {
   const [amount, setAmount] = useState("");
   const [cadence, setCadence] = useState<"Weekly" | "Monthly">("Monthly");
 
-  const addDemo = () => {
+  const saveSchedule = () => {
     const n = parseFloat(amount);
     if (!label.trim() || Number.isNaN(n) || n <= 0) {
       toast({ title: "Add details", description: "Enter a label and positive amount.", variant: "destructive" });
@@ -46,12 +46,15 @@ const ScheduledPaymentsPage = () => {
     ]);
     setLabel("");
     setAmount("");
-    toast({ title: "Scheduled payment saved (demo)", description: "Orchestration would persist on your backend cron." });
+    toast({
+      title: "Schedule saved locally",
+      description: "Persist recurrence rules and execution jobs in your ledger or payment engine when connected.",
+    });
   };
 
   const remove = (id: string) => {
     setItems((prev) => prev.filter((x) => x.id !== id));
-    toast({ title: "Removed", description: "Demo only — nothing was billed." });
+    toast({ title: "Schedule removed", description: "No payment was sent; delete is client-side until your API is wired." });
   };
 
   return (
@@ -63,18 +66,18 @@ const ScheduledPaymentsPage = () => {
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="text-page-title truncate">Scheduled payments</h1>
-            <p className="text-caption truncate">Recurring sends & autopay previews</p>
+            <p className="text-caption truncate">Recurring sends & autopay</p>
           </div>
         </div>
       </header>
 
       <div className="px-5 pt-4 space-y-5">
-        <DemoBanner />
+        <IntegrationReadinessBanner />
 
         <div className="surface-content p-4 space-y-3">
           <div className="flex items-center gap-2 mb-1">
             <CalendarClock className="h-4 w-4 text-primary" strokeWidth={1.8} />
-            <span className="text-[13px] font-bold text-foreground">Add simulated schedule</span>
+            <span className="text-[13px] font-bold text-foreground">Add schedule</span>
           </div>
           <Input
             placeholder="Label (e.g. Utilities)"
@@ -105,14 +108,14 @@ const ScheduledPaymentsPage = () => {
               </button>
             ))}
           </div>
-          <Button type="button" onClick={addDemo} className="w-full h-11 rounded-2xl text-[13px] font-bold gap-2">
+          <Button type="button" onClick={saveSchedule} className="w-full h-11 rounded-2xl text-[13px] font-bold gap-2">
             <Plus className="h-4 w-4" strokeWidth={2} />
-            Save schedule (demo)
+            Save schedule
           </Button>
         </div>
 
         <div>
-          <p className="text-label mb-2.5 px-0.5">Active (demo)</p>
+          <p className="text-label mb-2.5 px-0.5">Active schedules</p>
           <div className="surface-content overflow-hidden divide-y divide-border/50">
             {items.map((row) => (
               <div key={row.id} className="flex items-center gap-3 px-4 py-3.5">

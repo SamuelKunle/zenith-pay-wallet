@@ -2,7 +2,7 @@ import { ArrowLeft, Copy, Link2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import PageTransition from "@/components/PageTransition";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -19,11 +19,11 @@ const RequestMoneyPage = () => {
       return;
     }
     const token = `zp_req_${Math.random().toString(36).slice(2, 10)}`;
-    const href = `https://pay.zenithpay.demo/${token}`;
+    const href = `https://pay.zenithpay.app/request/${token}`;
     setLink(href);
     toast({
-      title: "Request link ready (demo)",
-      description: "In production this would be a signed, expiring URL with webhook callbacks.",
+      title: "Payment request link issued",
+      description: "Sign, expire, and bind this URL in your billing service; notify payers via your notification stack.",
     });
   };
 
@@ -52,7 +52,7 @@ const RequestMoneyPage = () => {
       </header>
 
       <div className="px-5 pt-4 space-y-5">
-        <DemoBanner />
+        <IntegrationReadinessBanner />
 
         <div className="surface-content p-5 space-y-4">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
@@ -61,7 +61,7 @@ const RequestMoneyPage = () => {
           <div>
             <p className="text-[13px] font-bold text-foreground">Create a request link</p>
             <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
-              Payers would open this link on web or inside the Zenith Pay app. Webhooks notify you when funds settle.
+              Payers open this link on web or in-app. Your backend attaches settlement webhooks when the PSP confirms funds.
             </p>
           </div>
           <div className="space-y-3">
@@ -83,7 +83,7 @@ const RequestMoneyPage = () => {
             </div>
           </div>
           <Button type="button" onClick={generate} className="w-full h-12 rounded-2xl text-[14px] font-bold">
-            Generate demo link
+            Generate payment link
           </Button>
 
           {link && (

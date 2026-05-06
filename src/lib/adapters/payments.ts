@@ -1,5 +1,6 @@
 /**
- * Integration seams for production: swap demo implementation for real API clients.
+ * Payments integration boundary: implement this port against your ACH/card processor,
+ * treasury service, or internal ledger facade.
  */
 
 export interface TransferQuote {
@@ -11,8 +12,8 @@ export interface PaymentsPort {
   quoteTransfer(amountCents: number): Promise<TransferQuote>;
 }
 
-/** Simulated latency + fee tiers for demos and UX testing. */
-export const demoPaymentsAdapter: PaymentsPort = {
+/** Fallback implementation with plausible latency — replace with production adapter. */
+export const mockPaymentsAdapter: PaymentsPort = {
   async quoteTransfer(amountCents) {
     await new Promise((r) => setTimeout(r, 280));
     const dollars = amountCents / 100;

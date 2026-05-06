@@ -2,7 +2,7 @@ import { ArrowLeft, BellRing } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import PageTransition from "@/components/PageTransition";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { Switch } from "@/components/ui/switch";
 
 const prefs = [
@@ -58,14 +58,14 @@ const NotificationPreferencesPage = () => {
             <BellRing className="h-5 w-5 text-primary shrink-0 hidden sm:block" strokeWidth={1.7} />
             <div>
               <h1 className="text-page-title truncate">Alert preferences</h1>
-              <p className="text-caption truncate">Granular toggles mirrored from enterprise wallets</p>
+              <p className="text-caption truncate">Per-channel fan-out through your notification infrastructure</p>
             </div>
           </div>
         </div>
       </header>
 
       <div className="px-5 pt-4 space-y-5">
-        <DemoBanner />
+        <IntegrationReadinessBanner />
 
         <div className="rounded-2xl bg-card shadow-card divide-y divide-border/50 overflow-hidden">
           {prefs.map((p) => (

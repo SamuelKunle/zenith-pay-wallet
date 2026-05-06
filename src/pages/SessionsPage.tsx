@@ -1,7 +1,7 @@
 import { ArrowLeft, LogOut, MonitorSmartphone, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageTransition from "@/components/PageTransition";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -28,20 +28,20 @@ const SessionsPage = () => (
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-page-title truncate">Devices & sessions</h1>
-          <p className="text-caption truncate">Trust this device • revoke stale logins</p>
+          <p className="text-caption truncate">Trusted devices • revoke stale sessions</p>
         </div>
       </div>
     </header>
 
     <div className="px-5 pt-4 space-y-5">
-      <DemoBanner />
+      <IntegrationReadinessBanner />
 
       <div className="surface-content p-4 flex gap-3">
         <Shield className="h-10 w-10 shrink-0 text-primary mt-0.5" strokeWidth={1.5} />
         <div>
-          <p className="text-[13px] font-bold text-foreground">Why this ships in prod wallets</p>
+          <p className="text-[13px] font-bold text-foreground">Session hardening</p>
           <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
-            Session revocation forces re-authentication, invalidates refresh tokens server-side, and logs an audit trail for SOC2-style reviews.
+            Wire sign-out actions to revoke refresh tokens, rotate device keys, and append security events for compliance reviews.
           </p>
         </div>
       </div>
@@ -66,8 +66,8 @@ const SessionsPage = () => (
                   className="mt-2 rounded-xl h-9 text-[12px] font-bold gap-1.5"
                   onClick={() =>
                     toast({
-                      title: "Session revoked (demo)",
-                      description: "Server-side invalidation hooks would disconnect this client immediately.",
+                      title: "Revocation queued",
+                      description: "Invalidate refresh tokens server-side so this client reconnects through full auth.",
                     })
                   }
                 >

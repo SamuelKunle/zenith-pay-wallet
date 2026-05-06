@@ -8,7 +8,7 @@ import { useFavourites } from "@/contexts/FavouritesContext";
 import { ProtectionSummary } from "@/components/security/SecurityUI";
 import { ProtectionBanner } from "@/components/trust/TrustCopy";
 import MobileDrawer, { MobileDrawerTrigger } from "@/components/layout/MobileDrawer";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 
 const Index = () => {
   const { favouriteServices } = useFavourites();
@@ -57,7 +57,7 @@ const Index = () => {
       {/* Content */}
       <div className="px-5 py-5 md:px-8 md:py-8">
         <div className="max-w-2xl mb-5 md:max-w-none">
-          <DemoBanner />
+          <IntegrationReadinessBanner />
         </div>
         <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-8">
           {/* Main column */}

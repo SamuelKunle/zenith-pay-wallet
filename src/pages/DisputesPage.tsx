@@ -1,7 +1,7 @@
 import { ArrowLeft, ClipboardList, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageTransition from "@/components/PageTransition";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 
@@ -14,14 +14,14 @@ interface DisputeCase {
   updates: string[];
 }
 
-const demoCases: DisputeCase[] = [
+const sampleCases: DisputeCase[] = [
   {
     id: "DSP-9281",
     title: "Duplicate merchant charge · Coffee chain",
     amountUsd: 12.42,
     status: "investigating",
     opened: "Mar 06, 2026",
-    updates: ["Mar 06 — Case opened automatically from transaction feed.", "Mar 07 — Team requested ARN from acquirer (simulated)."],
+    updates: ["Mar 06 — Case opened automatically from transaction feed.", "Mar 07 — ARN requested from acquirer network."],
   },
   {
     id: "DSP-9174",
@@ -48,7 +48,7 @@ const DisputesPage = () => (
     </header>
 
     <div className="px-5 pt-4 space-y-5">
-      <DemoBanner />
+      <IntegrationReadinessBanner />
 
       <Button
         type="button"
@@ -56,8 +56,8 @@ const DisputesPage = () => (
         className="w-full h-11 rounded-2xl text-[13px] font-bold gap-2 justify-center"
         onClick={() =>
           toast({
-            title: "Routing to intake (demo)",
-            description: "Production flow collects evidence, attaches transaction IDs, and opens a regulated case.",
+            title: "Opening dispute intake",
+            description: "Your case management workflow should attach transaction IDs and evidence payloads here.",
           })
         }
       >
@@ -66,7 +66,7 @@ const DisputesPage = () => (
       </Button>
 
       <div className="space-y-3">
-        {demoCases.map((c) => (
+        {sampleCases.map((c) => (
           <article key={c.id} className="surface-content p-4 space-y-3">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary">

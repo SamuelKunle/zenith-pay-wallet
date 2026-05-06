@@ -1,7 +1,7 @@
 import { ArrowLeft, Building2, CreditCard, Landmark, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import PageTransition from "@/components/PageTransition";
-import { DemoBanner } from "@/components/demo/DemoBanner";
+import { IntegrationReadinessBanner } from "@/components/integration/IntegrationReadinessBanner";
 import { toast } from "@/hooks/use-toast";
 
 const methods = [
@@ -37,23 +37,23 @@ const FundWalletPage = () => (
         </Link>
         <div className="flex-1 min-w-0">
           <h1 className="text-page-title truncate">Fund wallet</h1>
-          <p className="text-caption truncate">Demo funding rails — choose a path to simulate</p>
+          <p className="text-caption truncate">Funding paths — wire to ACH, cards, or payroll rails</p>
         </div>
       </div>
     </header>
 
     <div className="px-5 pt-4 space-y-5">
-      <DemoBanner />
+      <IntegrationReadinessBanner />
 
       <div className="surface-content p-4 flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
           <Zap className="h-[18px] w-[18px] text-primary" strokeWidth={1.8} />
         </div>
         <div>
-          <p className="text-[13px] font-bold text-foreground">How this maps to prod</p>
-          <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
-            Real launches wire these tiles to ACH processors, card networks, and payroll providers. Limits, OFAC screening, and settlement windows happen server-side.
-          </p>
+            <p className="text-[13px] font-bold text-foreground">Implementation hooks</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
+              Each tile maps to orchestration jobs you own server-side—payment initiation, PSP webhooks, limit checks, AML screening, and settlement reporting.
+            </p>
         </div>
       </div>
 
@@ -66,8 +66,8 @@ const FundWalletPage = () => (
               type="button"
               onClick={() =>
                 toast({
-                  title: "Simulation started",
-                  description: `${m.title} • This demo does not initiate a live transfer.`,
+                  title: "Funding flow queued",
+                  description: `${m.title} — complete in your orchestration layer with your processor contracts.`,
                 })
               }
               className="w-full surface-interactive p-4 text-left flex gap-3.5 transition-transform active:scale-[0.99]"
