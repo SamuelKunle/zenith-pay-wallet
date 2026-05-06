@@ -23,6 +23,7 @@ Use it as:
 | **Pricing / rails contract** | `src/lib/adapters/payments.ts` — `PaymentsPort`, `mockPaymentsAdapter` | Implement **`PaymentsPort`** against your PSP or treasury; wired by `transferService` and quote endpoints |
 | **Ledger & activity** | `src/server/ledger/mockLedger.ts`, `transactionMemory.ts` | Replace with repositories over **`wallet_balances`** / **`wallet_transactions`** ([`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql)) |
 | **Orchestration** | `src/server/transfers/transferService.ts`, `src/server/wallet/fundService.ts`, `src/server/ids.ts` | Thin services: keep signatures, swap internals for DB + idempotency + webhooks |
+| **Cards (prototype)** | `src/server/cards/cardMemory.ts`, `cardService.ts` — `GET/POST /api/v1/wallet/cards`, `PATCH …/cards/[id]` | In-memory issuance + freeze; swap for issuer/BIN service + PCI-safe PAN vault |
 | **Persistence (reference)** | [`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql) | Run via your migration tool (Prisma / Drizzle / Flyway / Atlas); not executed by Next.js |
 
 **Extend adapters:** add more ports beside payments (for example `src/lib/adapters/notifications.ts`, `identity.ts`) and call them from new or existing API handlers—[**`docs/INTEGRATIONS.md`**](docs/INTEGRATIONS.md) tracks vendor and compliance checklists flow by flow.
@@ -59,7 +60,8 @@ Suited for:
 - Wallet dashboard with balance and activity (API-backed where noted)
 - Transfers with server-side quoting and ledger debit
 - Scan-to-pay and merchant QR journeys (UI scaffolding)
-- Cards, savings, insights (mix of illustrative and API-fed data)
+- **Cards** — issue virtual (instant) or request physical (pending) via API; freeze/unfreeze persisted server-side (prototype memory store)
+- Savings, insights (mix of illustrative and API-fed data)
 - Security, sessions, disputes, schedules, funding, request-money, notifications (tooling routes + adapter framing)
 - Responsive layouts and **light/dark** themes
 

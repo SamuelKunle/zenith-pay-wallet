@@ -15,6 +15,14 @@ import {
 
 const stale = 60_000;
 
+/** Demo queries never hit the network; keep retries low and gc sensible for mock data. */
+const demoQueryOpts = {
+  staleTime: stale,
+  gcTime: 10 * 60_000,
+  retry: 1,
+  retryDelay: 400,
+} as const;
+
 export function useInsightsDemoQuery() {
   return useQuery({
     queryKey: ["demo", "insights", "v1"],
@@ -26,8 +34,7 @@ export function useInsightsDemoQuery() {
         spendingCategories: [...insightsDemoPayload.spendingCategories],
       };
     },
-    staleTime: stale,
-    retry: 1,
+    ...demoQueryOpts,
   });
 }
 
@@ -38,8 +45,7 @@ export function useDisputesDemoQuery() {
       await demoDelay(undefined, signal);
       return disputesDemoCases.map((c) => ({ ...c, updates: [...c.updates] }));
     },
-    staleTime: stale,
-    retry: 1,
+    ...demoQueryOpts,
   });
 }
 
@@ -50,8 +56,7 @@ export function useNotificationsDemoQuery() {
       await demoDelay(undefined, signal);
       return notificationsDemoFeed.map((n) => ({ ...n }));
     },
-    staleTime: stale,
-    retry: 1,
+    ...demoQueryOpts,
   });
 }
 
@@ -65,8 +70,7 @@ export function useRewardsHubDemoQuery() {
         history: [...rewardsDemoHubPayload.history],
       };
     },
-    staleTime: stale,
-    retry: 1,
+    ...demoQueryOpts,
   });
 }
 
@@ -77,7 +81,6 @@ export function useSchedulesDemoQuery() {
       await demoDelay(undefined, signal);
       return schedulesDemoSeed.map((r) => ({ ...r }));
     },
-    staleTime: stale,
-    retry: 1,
+    ...demoQueryOpts,
   });
 }

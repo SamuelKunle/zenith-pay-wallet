@@ -1,31 +1,20 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, CreditCard, Snowflake, Sun, Eye, EyeOff, Globe, ShoppingBag, Wifi, Copy, Check, Plus, Lock, ChevronRight, AlertTriangle, Shield, Fingerprint } from "lucide-react";
+import { ArrowLeft, CreditCard, Snowflake, Sun, Eye, EyeOff, Globe, ShoppingBag, Wifi, Copy, Check, Plus, Lock, AlertTriangle, Shield, Fingerprint, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { useTransactions } from "@/hooks/useTransactions";
+import { useIssueCard, useUpdateCardFreeze, useWalletCards } from "@/hooks/useWalletCards";
 import { EmptyState } from "@/components/states/StateUI";
 import { formatTxAmountSigned, formatTxCalendarWithTime, prettyCategory } from "@/lib/transactions/transactionUi";
 import { motion, AnimatePresence } from "framer-motion";
+import type { WalletCardDto } from "@/lib/api/types";
+import { ApiRequestError } from "@/lib/api/fetchJson";
+import { toast } from "@/hooks/use-toast";
 
-interface CardData {
-  id: string;
-  type: "virtual" | "physical";
-  name: string;
-  last4: string;
-  expiry: string;
-  cvv: string;
-  number: string;
-  brand: "Visa" | "Mastercard";
-  frozen: boolean;
-  color: "emerald" | "navy" | "slate";
-  status: "active" | "frozen" | "pending" | "expired";
+function isFrozen(card: WalletCardDto): boolean {
+  return card.status === "frozen";
 }
-
-const mockCards: CardData[] = [
-  { id: "1", type: "virtual", name: "Charlie Oliver", last4: "4829", expiry: "09/27", cvv: "482", number: "5412 7534 8291 4829", brand: "Visa", frozen: false, color: "emerald", status: "active" },
-  { id: "2", type: "physical", name: "Charlie Oliver", last4: "7361", expiry: "03/28", cvv: "713", number: "4532 8910 2345 7361", brand: "Mastercard", frozen: false, color: "navy", status: "active" },
-];
 
 const cardGradients = {
   emerald: "from-[hsl(162_72%_22%)] via-[hsl(170_60%_26%)] to-[hsl(180_50%_18%)]",
@@ -36,12 +25,22 @@ const cardGradients = {
 type View = "main" | "reveal" | "request" | "lost";
 
 const CardsPage = () => {
-  const [cards, setCards] = useState(mockCards);
+  const { data: cardsResponse, isPending: cardsLoading, isError: cardsError, refetch: refetchCards } =
+    useWalletCards();
+  const cards = cardsResponse?.cards ?? [];
+  const issueCardMutation = useIssueCard();
+  const freezeMutation = useUpdateCardFreeze();
+
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
   const [copied, setCopied] = useState(false);
   const [view, setView] = useState<View>("main");
   const [revealAuth, setRevealAuth] = useState(false);
+
+  useEffect(() => {
+    if (cards.length === 0) return;
+    setActiveCardIndex((i) => Math.min(i, cards.length - 1));
+  }, [cards.length]);
 
   const { data: ledgerTxResponse, isPending: ledgerSpendLoading } = useTransactions();
   const cardSpendPreview = useMemo(() => {
@@ -53,17 +52,75 @@ const CardsPage = () => {
   const activeCard = cards[activeCardIndex];
 
   const toggleFreeze = () => {
-    setCards(prev => prev.map((c, i) => i === activeCardIndex ? { ...c, frozen: !c.frozen, status: c.frozen ? "active" : "frozen" } : c));
+    if (!activeCard) return;
+    freezeMutation.mutate(
+      { id: activeCard.id, frozen: !isFrozen(activeCard) },
+      {
+        onError: () => {
+          toast({
+            title: "Could not update card",
+            description: "Try again in a moment.",
+            variant: "destructive",
+          });
+        },
+      },
+    );
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(activeCard.number.replace(/\s/g, ""));
+    if (!activeCard) return;
+    const raw = activeCard.number.replace(/\s/g, "").replace(/•/g, "");
+    if (!raw || raw.length < 16) {
+      toast({
+        title: "Number not available yet",
+        description: "Physical cards show full PAN after activation.",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigator.clipboard.writeText(raw);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const requestCard = async (type: "virtual" | "physical") => {
+    const prevLen = cards.length;
+    try {
+      await issueCardMutation.mutateAsync(type);
+      toast({
+        title: type === "virtual" ? "Virtual card issued" : "Physical card requested",
+        description:
+          type === "virtual"
+            ? "Your card is active — full details are available."
+            : "We’ll ship your card in 3–5 business days. You’ll see it here as Pending until activated.",
+      });
+      setView("main");
+      setActiveCardIndex(prevLen);
+    } catch (e) {
+      let msg = "Request failed.";
+      if (e instanceof ApiRequestError && typeof e.body === "object" && e.body !== null && "error" in e.body) {
+        const err = e.body as { error?: { message?: string } };
+        if (err.error?.message) msg = err.error.message;
+      }
+      toast({ title: "Could not complete request", description: msg, variant: "destructive" });
+    }
+  };
+
   // --- Reveal flow ---
   if (view === "reveal") {
+    if (!activeCard) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
+          <p className="text-sm text-muted-foreground mb-4">No card selected.</p>
+          <button type="button" onClick={() => setView("main")} className="text-sm font-semibold text-primary">
+            Back
+          </button>
+        </div>
+      );
+    }
+
+    const pendingIssue = activeCard.status === "pending" && activeCard.type === "physical";
+
     if (!revealAuth) {
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
@@ -75,14 +132,20 @@ const CardsPage = () => {
             </div>
             <div>
               <h2 className="text-[18px] font-bold text-foreground mb-1">Verify to view card details</h2>
-              <p className="text-[12px] text-muted-foreground">Use biometrics or PIN to reveal sensitive information</p>
+              <p className="text-[12px] text-muted-foreground">
+                {pendingIssue
+                  ? "This physical card is still being issued — PAN/CVV are not available until activation."
+                  : "Use biometrics or PIN to reveal sensitive information"}
+              </p>
             </div>
-            <button onClick={() => setRevealAuth(true)}
-              className="w-full rounded-2xl balance-gradient py-4 text-[15px] font-bold text-white shadow-balance active:scale-[0.98]"
-            >
-              Authenticate
-            </button>
-            <button onClick={() => setView("main")} className="text-[12px] font-semibold text-muted-foreground">Cancel</button>
+            {!pendingIssue ? (
+              <button type="button" onClick={() => setRevealAuth(true)}
+                className="w-full rounded-2xl balance-gradient py-4 text-[15px] font-bold text-white shadow-balance active:scale-[0.98]"
+              >
+                Authenticate
+              </button>
+            ) : null}
+            <button type="button" onClick={() => setView("main")} className="text-[12px] font-semibold text-muted-foreground">Cancel</button>
           </motion.div>
         </div>
       );
@@ -92,7 +155,7 @@ const CardsPage = () => {
       <div className="min-h-screen bg-background pb-24">
         <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
           <div className="flex items-center gap-3 px-5 py-3.5">
-            <button onClick={() => { setView("main"); setRevealAuth(false); }} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
+            <button type="button" onClick={() => { setView("main"); setRevealAuth(false); }} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
               <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
             </button>
             <h1 className="text-[15px] font-bold text-foreground">Card Details</h1>
@@ -102,9 +165,9 @@ const CardsPage = () => {
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl bg-card shadow-card p-5 space-y-4"
           >
-            <DetailRow label="Card Number" value={activeCard.number} copyable onCopy={handleCopy} copied={copied} />
+            <DetailRow label="Card Number" value={activeCard.number} copyable={!pendingIssue} onCopy={handleCopy} copied={copied} />
             <DetailRow label="Expiry Date" value={activeCard.expiry} />
-            <DetailRow label="CVV" value={activeCard.cvv} />
+            <DetailRow label="CVV" value={activeCard.cvv ?? "—"} />
             <DetailRow label="Card Holder" value={activeCard.name} />
             <DetailRow label="Card Type" value={`${activeCard.brand} ${activeCard.type}`} />
           </motion.div>
@@ -131,23 +194,46 @@ const CardsPage = () => {
           </div>
         </header>
         <div className="px-5 py-5 space-y-4">
-          {[
-            { title: "Virtual Card", desc: "Instant. Perfect for online payments.", fee: "Free", color: "bg-primary/8", textColor: "text-primary" },
-            { title: "Physical Card", desc: "Delivered to your address in 3-5 days.", fee: "$1,500", color: "bg-accent/8", textColor: "text-accent" },
-          ].map((card) => (
-            <motion.button key={card.title} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-              className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${card.color}`}>
-                  <CreditCard className={`h-5 w-5 ${card.textColor}`} strokeWidth={1.8} />
-                </div>
-                <span className={`text-[12px] font-bold ${card.textColor}`}>{card.fee}</span>
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            disabled={issueCardMutation.isPending}
+            onClick={() => requestCard("virtual")}
+            className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors disabled:opacity-60"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/8">
+                <CreditCard className="h-5 w-5 text-primary" strokeWidth={1.8} />
               </div>
-              <h3 className="text-[14px] font-bold text-foreground mb-0.5">{card.title}</h3>
-              <p className="text-[11px] text-muted-foreground">{card.desc}</p>
-            </motion.button>
-          ))}
+              <span className="text-[12px] font-bold text-primary">Free</span>
+            </div>
+            <h3 className="text-[14px] font-bold text-foreground mb-0.5">Virtual Card</h3>
+            <p className="text-[11px] text-muted-foreground">Issued instantly — full PAN and CVV available after creation.</p>
+          </motion.button>
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            disabled={issueCardMutation.isPending}
+            onClick={() => requestCard("physical")}
+            className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors disabled:opacity-60"
+          >
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/8">
+                <CreditCard className="h-5 w-5 text-accent" strokeWidth={1.8} />
+              </div>
+              <span className="text-[12px] font-bold text-accent">Fee applies</span>
+            </div>
+            <h3 className="text-[14px] font-bold text-foreground mb-0.5">Physical Card</h3>
+            <p className="text-[11px] text-muted-foreground">Ships in 3–5 days — appears as Pending until activated.</p>
+          </motion.button>
+          {issueCardMutation.isPending && (
+            <p className="flex items-center justify-center gap-2 text-[12px] text-muted-foreground py-2">
+              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> Processing…
+            </p>
+          )}
         </div>
       </div>
     );
@@ -155,11 +241,21 @@ const CardsPage = () => {
 
   // --- Lost/stolen ---
   if (view === "lost") {
+    if (!activeCard) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5">
+          <p className="text-sm text-muted-foreground">No card selected.</p>
+          <button type="button" onClick={() => setView("main")} className="mt-4 text-sm font-semibold text-primary">
+            Back
+          </button>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-background pb-24">
         <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
           <div className="flex items-center gap-3 px-5 py-3.5">
-            <button onClick={() => setView("main")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
+            <button type="button" onClick={() => setView("main")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
               <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
             </button>
             <h1 className="text-[15px] font-bold text-foreground">Report Card Issue</h1>
@@ -171,14 +267,15 @@ const CardsPage = () => {
               If your card is lost or stolen, freeze it immediately. We'll block all transactions and start the replacement process.
             </p>
           </div>
-          {!activeCard.frozen && (
-            <button onClick={toggleFreeze}
-              className="w-full rounded-2xl bg-destructive py-4 text-[15px] font-bold text-destructive-foreground active:scale-[0.98]"
+          {!isFrozen(activeCard) && (
+            <button type="button" onClick={toggleFreeze}
+              disabled={freezeMutation.isPending}
+              className="w-full rounded-2xl bg-destructive py-4 text-[15px] font-bold text-destructive-foreground active:scale-[0.98] disabled:opacity-60"
             >
               Freeze Card Immediately
             </button>
           )}
-          {activeCard.frozen && (
+          {isFrozen(activeCard) && (
             <div className="rounded-2xl bg-card shadow-card p-4 flex items-center gap-3">
               <Snowflake className="h-5 w-5 text-destructive" strokeWidth={1.8} />
               <div className="flex-1">
@@ -187,12 +284,64 @@ const CardsPage = () => {
               </div>
             </div>
           )}
-          <button className="w-full rounded-2xl border border-border/20 bg-card py-3.5 text-[13px] font-semibold text-foreground hover:bg-muted/15 transition-colors">
+          <button type="button" onClick={() => setView("request")}
+            className="w-full rounded-2xl border border-border/20 bg-card py-3.5 text-[13px] font-semibold text-foreground hover:bg-muted/15 transition-colors"
+          >
             Request Replacement Card
           </button>
           <Link to="/support" className="block w-full rounded-2xl border border-border/20 bg-card py-3.5 text-center text-[13px] font-semibold text-primary hover:bg-muted/15 transition-colors">
             Contact Support
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (cardsLoading && cards.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3 px-5">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" strokeWidth={2} />
+        <p className="text-sm text-muted-foreground">Loading cards…</p>
+      </div>
+    );
+  }
+
+  if (cardsError && cards.length === 0) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5 gap-4">
+        <p className="text-sm text-center text-muted-foreground">Could not load cards.</p>
+        <button type="button" onClick={() => refetchCards()} className="btn-primary">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!cardsLoading && cards.length === 0) {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
+          <div className="flex items-center gap-3 px-5 py-3.5">
+            <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60 md:hidden">
+              <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-[15px] font-bold text-foreground">Cards</h1>
+            </div>
+            <button type="button" onClick={() => setView("request")}
+              className="flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/12 transition-colors"
+            >
+              <Plus className="h-3 w-3" strokeWidth={2.5} />
+              New Card
+            </button>
+          </div>
+        </header>
+        <div className="px-5 pt-6">
+          <EmptyState
+            title="No cards yet"
+            subtitle="Issue a virtual card instantly or request a physical card."
+            action={{ label: "Request a card", onClick: () => setView("request") }}
+          />
         </div>
       </div>
     );
@@ -209,7 +358,7 @@ const CardsPage = () => {
           <div className="flex-1">
             <h1 className="text-[15px] font-bold text-foreground">Cards</h1>
           </div>
-          <button onClick={() => setView("request")}
+          <button type="button" onClick={() => setView("request")}
             className="flex items-center gap-1.5 rounded-full bg-primary/8 px-3 py-1.5 text-[11px] font-semibold text-primary hover:bg-primary/12 transition-colors"
           >
             <Plus className="h-3 w-3" strokeWidth={2.5} />
@@ -220,14 +369,15 @@ const CardsPage = () => {
 
       <div className="px-5 py-5 md:px-8 space-y-5">
         {/* Card selector */}
-        <div className="flex justify-center gap-2 mb-1">
+        <div className="flex justify-center gap-2 mb-1 flex-wrap">
           {cards.map((c, i) => (
-            <button key={i} onClick={() => setActiveCardIndex(i)}
+            <button type="button" key={c.id} onClick={() => setActiveCardIndex(i)}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold transition-all ${
                 i === activeCardIndex ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
               }`}
             >
               {c.type === "virtual" ? "Virtual" : "Physical"} ···{c.last4}
+              {c.status === "pending" ? " · Pending" : ""}
             </button>
           ))}
         </div>
@@ -245,7 +395,7 @@ const CardsPage = () => {
               <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/[0.04]" />
               <div className="absolute bottom-4 right-6 h-20 w-20 rounded-full bg-white/[0.03]" />
 
-              {activeCard.frozen && (
+              {isFrozen(activeCard) && (
                 <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-10 flex items-center justify-center rounded-3xl">
                   <div className="flex items-center gap-2 rounded-full bg-white/10 px-4 py-2">
                     <Snowflake className="h-4 w-4 text-white" strokeWidth={2} />
@@ -257,7 +407,10 @@ const CardsPage = () => {
               <div className="relative z-[5] h-full flex flex-col justify-between">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[9px] font-medium text-white/40 uppercase tracking-wider">{activeCard.type} Card</p>
+                    <p className="text-[9px] font-medium text-white/40 uppercase tracking-wider">
+                      {activeCard.type} Card
+                      {activeCard.status === "pending" ? " · Pending" : ""}
+                    </p>
                     <p className="text-[12px] font-semibold text-white/80 mt-0.5">Zenith Pay</p>
                   </div>
                   <div className="text-right">
@@ -290,9 +443,28 @@ const CardsPage = () => {
         {/* Quick actions */}
         <div className="flex justify-center gap-2.5">
           <CardAction icon={showDetails ? EyeOff : Eye} label={showDetails ? "Hide" : "Show"} onClick={() => setShowDetails(!showDetails)} />
-          <CardAction icon={activeCard.frozen ? Sun : Snowflake} label={activeCard.frozen ? "Unfreeze" : "Freeze"} onClick={toggleFreeze} danger={!activeCard.frozen} />
+          <CardAction
+            icon={isFrozen(activeCard) ? Sun : Snowflake}
+            label={isFrozen(activeCard) ? "Unfreeze" : "Freeze"}
+            onClick={toggleFreeze}
+            danger={!isFrozen(activeCard)}
+            disabled={freezeMutation.isPending}
+          />
           <CardAction icon={copied ? Check : Copy} label="Copy" onClick={handleCopy} />
-          <CardAction icon={Lock} label="Reveal" onClick={() => setView("reveal")} />
+          <CardAction
+            icon={Lock}
+            label="Reveal"
+            onClick={() => {
+              if (activeCard.status === "pending") {
+                toast({
+                  title: "Card still pending",
+                  description: "Physical card PAN/CVV appear after activation. Use Request new card for updates.",
+                });
+                return;
+              }
+              setView("reveal");
+            }}
+          />
           <CardAction icon={AlertTriangle} label="Report" onClick={() => setView("lost")} />
         </div>
 
@@ -390,9 +562,21 @@ const CardsPage = () => {
   );
 };
 
-function CardAction({ icon: Icon, label, onClick, danger }: { icon: LucideIcon; label: string; onClick: () => void; danger?: boolean }) {
+function CardAction({
+  icon: Icon,
+  label,
+  onClick,
+  danger,
+  disabled,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
   return (
-    <button onClick={onClick} className="flex flex-col items-center gap-1 group">
+    <button type="button" disabled={disabled} onClick={onClick} className="flex flex-col items-center gap-1 group disabled:opacity-45">
       <div className={`flex h-11 w-11 items-center justify-center rounded-xl transition-all group-active:scale-90 ${
         danger ? "bg-destructive/8" : "bg-secondary"
       }`}>

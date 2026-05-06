@@ -47,8 +47,10 @@ export interface InsightsDemoPayload {
 }
 
 export const insightsDemoPayload: InsightsDemoPayload = {
-  weeklyIncomeCents: 285_000_00,
-  weeklySpentCents: 141_400_00,
+  /** Intentionally large “premium demo” scale; all values are USD cents. */
+  weeklyIncomeCents: 28_500_000,
+  /** Equals sum of `spendingCategories` amounts below (weekly spend breakdown). */
+  weeklySpentCents: 14_140_000,
   spendingCategories: [
     { icon: Utensils, label: "Food & Dining", amountCents: 4_520_000, pct: 32 },
     { icon: Car, label: "Transport", amountCents: 1_840_000, pct: 13 },
@@ -161,7 +163,7 @@ export const notificationsDemoFeed: NotifDemoRow[] = [
     type: "credit",
     icon: ArrowDownLeft,
     title: "Money received",
-    desc: `${formatUsdLineFromCents(50_000_00)} from Emerson Obi`,
+    desc: `${formatUsdLineFromCents(50_000)} from Emerson Obi`,
     time: "2 min ago",
     read: false,
     category: "money",
@@ -173,7 +175,7 @@ export const notificationsDemoFeed: NotifDemoRow[] = [
     type: "debit",
     icon: ArrowUpRight,
     title: "Transfer successful",
-    desc: `${formatUsdLineFromCents(75_000_00)} to Avery Nwachukwu`,
+    desc: `${formatUsdLineFromCents(75_000)} to Avery Nwachukwu`,
     time: "1 hr ago",
     read: false,
     category: "money",
@@ -221,7 +223,7 @@ export const notificationsDemoFeed: NotifDemoRow[] = [
     type: "merchant",
     icon: CreditCard,
     title: "Payment received",
-    desc: `${formatUsdLineFromCents(15_000_00)} via QR`,
+    desc: `${formatUsdLineFromCents(150_000)} via QR`,
     time: "1 day ago",
     read: true,
     category: "money",

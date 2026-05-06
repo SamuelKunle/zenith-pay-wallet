@@ -119,10 +119,21 @@ const NotificationsPage = () => {
                 return (
                   <motion.div
                     key={n.id}
+                    role="button"
+                    tabIndex={0}
                     initial={reduced ? undefined : { opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: reduced ? 0 : 0.2, delay: reduced ? 0 : i * 0.02 }}
-                    className={`flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/20 ${
+                    onClick={() => {
+                      if (!n.read) setReadOverride((prev) => ({ ...prev, [n.id]: true }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        if (!n.read) setReadOverride((prev) => ({ ...prev, [n.id]: true }));
+                      }
+                    }}
+                    className={`flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-muted/20 cursor-pointer interactive-focus rounded-none ${
                       i < filtered.length - 1 ? "border-b border-border/15" : ""
                     } ${!n.read ? "bg-primary/[0.02]" : ""}`}
                   >
@@ -140,6 +151,7 @@ const NotificationsPage = () => {
                         {n.actionLabel && n.actionPath && (
                           <Link
                             to={n.actionPath}
+                            onClick={(e) => e.stopPropagation()}
                             className="text-[9px] font-semibold text-primary py-2 min-h-[40px] inline-flex items-center interactive-focus rounded-md px-1"
                           >
                             {n.actionLabel}

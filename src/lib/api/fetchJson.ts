@@ -82,3 +82,15 @@ export function postJson<T>(
     body: JSON.stringify(body),
   });
 }
+
+export function patchJson<T>(
+  path: string,
+  body: unknown,
+  init?: Omit<RequestInit, "method" | "body">,
+): Promise<T> {
+  return fetchJson<T>(path, {
+    ...init,
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
