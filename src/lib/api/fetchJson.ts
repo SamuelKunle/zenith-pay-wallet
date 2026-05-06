@@ -94,3 +94,7 @@ export function patchJson<T>(
     body: JSON.stringify(body),
   });
 }
+
+export function deleteJson(path: string, init?: Omit<RequestInit, "method">): Promise<void> {
+  return fetchJson<void>(path, { ...init, method: "DELETE" });
+}

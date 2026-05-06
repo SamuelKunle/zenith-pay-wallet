@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { WalletCardDto, WalletCardsListResponse } from "@/lib/api/types";
-import { fetchJson, patchJson, postJson } from "@/lib/api/fetchJson";
+import type { WalletCardCreateBody, WalletCardDto, WalletCardsListResponse } from "@/lib/api/types";
+import { deleteJson, fetchJson, patchJson, postJson } from "@/lib/api/fetchJson";
 
 export function useWalletCards() {
   return useQuery({
@@ -13,8 +13,18 @@ export function useWalletCards() {
 export function useIssueCard() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (type: "virtual" | "physical") =>
-      postJson<{ card: WalletCardDto }>("/api/v1/wallet/cards", { type }),
+    mutationFn: (body: WalletCardCreateBody) =>
+      postJson<{ card: WalletCardDto }>("/api/v1/wallet/cards", body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wallet", "cards"] });
+    },
+  });
+}
+
+export function useDeleteCard() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteJson(`/api/v1/wallet/cards/${encodeURIComponent(id)}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wallet", "cards"] });
     },

@@ -65,6 +65,12 @@ export function updateCard(id: string, patch: Partial<StoredWalletCard>): Stored
   return next;
 }
 
+export function removeCard(id: string): boolean {
+  const before = cards.length;
+  cards = cards.filter((c) => c.id !== id);
+  return cards.length < before;
+}
+
 /** Test helper */
 export function resetCardsForTests(seed = true) {
   cards = seed ? buildSeed() : [];

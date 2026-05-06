@@ -1,14 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, CreditCard, Snowflake, Sun, Eye, EyeOff, Globe, ShoppingBag, Wifi, Copy, Check, Plus, Lock, AlertTriangle, Shield, Fingerprint, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CreditCard,
+  Snowflake,
+  Sun,
+  Eye,
+  EyeOff,
+  Globe,
+  ShoppingBag,
+  Wifi,
+  Copy,
+  Check,
+  Plus,
+  Lock,
+  AlertTriangle,
+  Shield,
+  Fingerprint,
+  Loader2,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { Link } from "react-router-dom";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useTransactions } from "@/hooks/useTransactions";
-import { useIssueCard, useUpdateCardFreeze, useWalletCards } from "@/hooks/useWalletCards";
+import { useDeleteCard, useIssueCard, useUpdateCardFreeze, useWalletCards } from "@/hooks/useWalletCards";
 import { EmptyState } from "@/components/states/StateUI";
 import { formatTxAmountSigned, formatTxCalendarWithTime, prettyCategory } from "@/lib/transactions/transactionUi";
 import { motion, AnimatePresence } from "framer-motion";
-import type { WalletCardDto } from "@/lib/api/types";
+import type { WalletCardBrand, WalletCardColor, WalletCardDto } from "@/lib/api/types";
 import { ApiRequestError } from "@/lib/api/fetchJson";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,7 +53,14 @@ const cardGradients = {
   slate: "from-[hsl(220_20%_25%)] via-[hsl(220_18%_30%)] to-[hsl(220_15%_20%)]",
 };
 
-type View = "main" | "reveal" | "request" | "lost";
+type CardGradientKey = keyof typeof cardGradients;
+
+function gradientClassFor(color: WalletCardDto["color"] | undefined): string {
+  if (color && color in cardGradients) return cardGradients[color as CardGradientKey];
+  return cardGradients.emerald;
+}
+
+type View = "main" | "reveal" | "request" | "addVirtual" | "addPhysical" | "lost";
 
 const CardsPage = () => {
   const { data: cardsResponse, isPending: cardsLoading, isError: cardsError, refetch: refetchCards } =
@@ -30,6 +68,7 @@ const CardsPage = () => {
   const cards = cardsResponse?.cards ?? [];
   const issueCardMutation = useIssueCard();
   const freezeMutation = useUpdateCardFreeze();
+  const deleteCardMutation = useDeleteCard();
 
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [showDetails, setShowDetails] = useState(false);
@@ -37,10 +76,39 @@ const CardsPage = () => {
   const [view, setView] = useState<View>("main");
   const [revealAuth, setRevealAuth] = useState(false);
 
+  const [panInput, setPanInput] = useState("");
+  const [expiryInput, setExpiryInput] = useState("");
+  const [cvvInput, setCvvInput] = useState("");
+  const [holderInput, setHolderInput] = useState("");
+  const [brandPick, setBrandPick] = useState<WalletCardBrand>("Visa");
+  const [colorPick, setColorPick] = useState<WalletCardColor>("emerald");
+  const [physicalHolderName, setPhysicalHolderName] = useState("");
+  const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{
+    id: string;
+    last4: string;
+    type: "virtual" | "physical";
+  } | null>(null);
+
+  /** List length can drop before React reconciles `activeCardIndex` — clamp to avoid undefined. */
+  const safeCardIndex = useMemo(() => {
+    if (cards.length === 0) return 0;
+    return Math.min(Math.max(0, activeCardIndex), cards.length - 1);
+  }, [cards.length, activeCardIndex]);
+
+  const activeCard = cards.length > 0 ? cards[safeCardIndex] : undefined;
+
   useEffect(() => {
     if (cards.length === 0) return;
     setActiveCardIndex((i) => Math.min(i, cards.length - 1));
   }, [cards.length]);
+
+  useEffect(() => {
+    if (view !== "main") {
+      setRemoveDialogOpen(false);
+      setRemoveTarget(null);
+    }
+  }, [view]);
 
   const { data: ledgerTxResponse, isPending: ledgerSpendLoading } = useTransactions();
   const cardSpendPreview = useMemo(() => {
@@ -48,8 +116,6 @@ const CardsPage = () => {
       .filter((t) => t.direction === "debit" && (t.category === "merchant" || t.category === "bills"))
       .slice(0, 4);
   }, [ledgerTxResponse?.transactions]);
-
-  const activeCard = cards[activeCardIndex];
 
   const toggleFreeze = () => {
     if (!activeCard) return;
@@ -83,17 +149,59 @@ const CardsPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const requestCard = async (type: "virtual" | "physical") => {
+  const onPanChange = (raw: string) => {
+    const d = raw.replace(/\D/g, "").slice(0, 16);
+    setPanInput(d.replace(/(\d{4})(?=\d)/g, "$1 ").trim());
+  };
+
+  const submitVirtualCard = async () => {
     const prevLen = cards.length;
     try {
-      await issueCardMutation.mutateAsync(type);
-      toast({
-        title: type === "virtual" ? "Virtual card issued" : "Physical card requested",
-        description:
-          type === "virtual"
-            ? "Your card is active — full details are available."
-            : "We’ll ship your card in 3–5 business days. You’ll see it here as Pending until activated.",
+      await issueCardMutation.mutateAsync({
+        type: "virtual",
+        details: {
+          pan: panInput.replace(/\s/g, ""),
+          expiry: expiryInput.trim(),
+          cvv: cvvInput.trim(),
+          holderName: holderInput.trim(),
+          brand: brandPick,
+          color: colorPick,
+        },
       });
+      toast({
+        title: "Card added",
+        description: "Your digital card is saved to this wallet — show details anytime from the card.",
+      });
+      setPanInput("");
+      setExpiryInput("");
+      setCvvInput("");
+      setHolderInput("");
+      setBrandPick("Visa");
+      setColorPick("emerald");
+      setView("main");
+      setActiveCardIndex(prevLen);
+    } catch (e) {
+      let msg = "Could not add card.";
+      if (e instanceof ApiRequestError && typeof e.body === "object" && e.body !== null && "error" in e.body) {
+        const err = e.body as { error?: { message?: string } };
+        if (err.error?.message) msg = err.error.message;
+      }
+      toast({ title: "Could not add card", description: msg, variant: "destructive" });
+    }
+  };
+
+  const submitPhysicalRequest = async () => {
+    const prevLen = cards.length;
+    try {
+      await issueCardMutation.mutateAsync({
+        type: "physical",
+        holderName: physicalHolderName.trim() || undefined,
+      });
+      toast({
+        title: "Physical card requested",
+        description: "We’ll ship your card in 3–5 business days. It appears as Pending until activated.",
+      });
+      setPhysicalHolderName("");
       setView("main");
       setActiveCardIndex(prevLen);
     } catch (e) {
@@ -104,6 +212,66 @@ const CardsPage = () => {
       }
       toast({ title: "Could not complete request", description: msg, variant: "destructive" });
     }
+  };
+
+  const openRemoveDialog = () => {
+    if (!activeCard) return;
+    setRemoveTarget({
+      id: activeCard.id,
+      last4: activeCard.last4,
+      type: activeCard.type,
+    });
+    setRemoveDialogOpen(true);
+  };
+
+  const confirmRemoveCard = () => {
+    if (!removeTarget) return;
+    const typeLabel = removeTarget.type === "virtual" ? "Digital" : "Physical";
+    const { id: removeId, last4 } = removeTarget;
+    deleteCardMutation.mutate(removeId, {
+      onSuccess: () => {
+        setRemoveDialogOpen(false);
+        setRemoveTarget(null);
+        toast({
+          variant: "success",
+          duration: 4200,
+          title: (
+            <span className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--success)/0.22)] ring-1 ring-success/25">
+                <CheckCircle2 className="h-[22px] w-[22px] text-success" strokeWidth={2.25} aria-hidden />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5 text-left">
+                <span className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">Card removed</span>
+                <span className="text-[13px] font-medium leading-snug text-muted-foreground">
+                  {typeLabel} card ···· {last4} is no longer saved in this wallet.
+                </span>
+              </span>
+            </span>
+          ),
+        });
+      },
+      onError: () => {
+        setRemoveDialogOpen(false);
+        setRemoveTarget(null);
+        toast({
+          variant: "destructive",
+          duration: 5200,
+          title: (
+            <span className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/18">
+                <AlertCircle className="h-[22px] w-[22px]" strokeWidth={2.25} aria-hidden />
+              </span>
+              <span className="flex min-w-0 flex-1 flex-col gap-1 pt-0.5 text-left">
+                <span className="text-[15px] font-semibold tracking-[-0.01em]">Couldn’t remove card</span>
+                <span className="text-[13px] font-medium leading-snug opacity-95">
+                  Check your connection and try again.
+                </span>
+              </span>
+            </span>
+          ),
+        });
+      },
+    });
   };
 
   // --- Reveal flow ---
@@ -181,44 +349,45 @@ const CardsPage = () => {
     );
   }
 
-  // --- Request new card ---
+  // --- Request new card (pick flow) ---
   if (view === "request") {
     return (
       <div className="min-h-screen bg-background pb-24">
         <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
           <div className="flex items-center gap-3 px-5 py-3.5">
-            <button onClick={() => setView("main")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
+            <button type="button" onClick={() => setView("main")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
               <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
             </button>
-            <h1 className="text-[15px] font-bold text-foreground">Request New Card</h1>
+            <h1 className="text-[15px] font-bold text-foreground">Add a card</h1>
           </div>
         </header>
         <div className="px-5 py-5 space-y-4">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">
+            Enter your card details — nothing is auto-generated here. Use any 16 digits; brand must match the number (Visa starts with <strong>4</strong>; Mastercard with <strong>51–55</strong> or <strong>2221–2720</strong> range).
+          </p>
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            disabled={issueCardMutation.isPending}
-            onClick={() => requestCard("virtual")}
-            className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors disabled:opacity-60"
+            onClick={() => setView("addVirtual")}
+            className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors"
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/8">
                 <CreditCard className="h-5 w-5 text-primary" strokeWidth={1.8} />
               </div>
-              <span className="text-[12px] font-bold text-primary">Free</span>
+              <span className="text-[12px] font-bold text-primary">Digital</span>
             </div>
-            <h3 className="text-[14px] font-bold text-foreground mb-0.5">Virtual Card</h3>
-            <p className="text-[11px] text-muted-foreground">Issued instantly — full PAN and CVV available after creation.</p>
+            <h3 className="text-[14px] font-bold text-foreground mb-0.5">Digital (virtual) card</h3>
+            <p className="text-[11px] text-muted-foreground">Add number, expiry, CVV, and name — same as linking a card elsewhere.</p>
           </motion.button>
           <motion.button
             type="button"
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            disabled={issueCardMutation.isPending}
-            onClick={() => requestCard("physical")}
-            className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors disabled:opacity-60"
+            onClick={() => setView("addPhysical")}
+            className="w-full rounded-2xl bg-card shadow-card p-5 text-left hover:bg-muted/15 transition-colors"
           >
             <div className="flex items-start justify-between mb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/8">
@@ -226,14 +395,180 @@ const CardsPage = () => {
               </div>
               <span className="text-[12px] font-bold text-accent">Fee applies</span>
             </div>
-            <h3 className="text-[14px] font-bold text-foreground mb-0.5">Physical Card</h3>
-            <p className="text-[11px] text-muted-foreground">Ships in 3–5 days — appears as Pending until activated.</p>
+            <h3 className="text-[14px] font-bold text-foreground mb-0.5">Physical card</h3>
+            <p className="text-[11px] text-muted-foreground">Request shipment — name on card, shown as Pending until it arrives.</p>
           </motion.button>
-          {issueCardMutation.isPending && (
-            <p className="flex items-center justify-center gap-2 text-[12px] text-muted-foreground py-2">
-              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} /> Processing…
+        </div>
+      </div>
+    );
+  }
+
+  // --- Add virtual: manual entry ---
+  if (view === "addVirtual") {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
+          <div className="flex items-center gap-3 px-5 py-3.5">
+            <button type="button" onClick={() => setView("request")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
+              <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
+            </button>
+            <h1 className="text-[15px] font-bold text-foreground">Digital card details</h1>
+          </div>
+        </header>
+        <div className="px-5 py-5 space-y-4 max-w-md mx-auto">
+          <div className="space-y-1.5">
+            <label className="form-label" htmlFor="card-pan">Card number</label>
+            <input
+              id="card-pan"
+              inputMode="numeric"
+              autoComplete="cc-number"
+              placeholder="4242 4242 4242 4242"
+              className="input-premium"
+              value={panInput}
+              onChange={(e) => onPanChange(e.target.value)}
+            />
+            <p className="text-[10px] text-muted-foreground">
+              Examples: Visa <span className="tabular-nums">4242 4242 4242 4242</span> · MC{" "}
+              <span className="tabular-nums">5555 5555 5555 4444</span>
             </p>
-          )}
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="form-label" htmlFor="card-exp">Expires</label>
+              <input
+                id="card-exp"
+                inputMode="numeric"
+                autoComplete="cc-exp"
+                placeholder="MM/YY"
+                className="input-premium"
+                value={expiryInput}
+                onChange={(e) => setExpiryInput(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="form-label" htmlFor="card-cvv">CVV</label>
+              <input
+                id="card-cvv"
+                inputMode="numeric"
+                autoComplete="cc-csc"
+                placeholder="123"
+                className="input-premium"
+                maxLength={4}
+                value={cvvInput}
+                onChange={(e) => setCvvInput(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="form-label" htmlFor="card-name">Name on card</label>
+            <input
+              id="card-name"
+              autoComplete="cc-name"
+              placeholder="As printed on card"
+              className="input-premium"
+              value={holderInput}
+              onChange={(e) => setHolderInput(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <span className="form-label">Brand</span>
+            <div className="flex gap-2">
+              {(["Visa", "Mastercard"] as const).map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setBrandPick(b)}
+                  className={`flex-1 rounded-xl py-2.5 text-[12px] font-semibold border transition-colors ${
+                    brandPick === b ? "border-primary bg-primary/8 text-primary" : "border-border/30 bg-card text-muted-foreground"
+                  }`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <span className="form-label">Card appearance</span>
+            <div className="flex gap-2">
+              {([
+                { id: "emerald" as const, label: "Forest" },
+                { id: "navy" as const, label: "Navy" },
+                { id: "slate" as const, label: "Slate" },
+              ]).map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setColorPick(id)}
+                  className={`flex-1 rounded-xl py-2.5 text-[11px] font-semibold border transition-colors ${
+                    colorPick === id ? "border-primary bg-primary/8 text-primary" : "border-border/30 bg-card text-muted-foreground"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={issueCardMutation.isPending}
+            onClick={() => void submitVirtualCard()}
+            className="btn-primary w-full flex items-center justify-center gap-2 min-h-[48px]"
+          >
+            {issueCardMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                Saving…
+              </>
+            ) : (
+              "Add card to wallet"
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Request physical (name + pending placeholder) ---
+  if (view === "addPhysical") {
+    return (
+      <div className="min-h-screen bg-background pb-24">
+        <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
+          <div className="flex items-center gap-3 px-5 py-3.5">
+            <button type="button" onClick={() => setView("request")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
+              <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
+            </button>
+            <h1 className="text-[15px] font-bold text-foreground">Physical card</h1>
+          </div>
+        </header>
+        <div className="px-5 py-5 space-y-4 max-w-md mx-auto">
+          <p className="text-[12px] text-muted-foreground leading-relaxed">
+            We’ll order a physical card to your profile address. You’ll see it here as <strong>Pending</strong> until you activate it.
+          </p>
+          <div className="space-y-1.5">
+            <label className="form-label" htmlFor="phys-name">Name on card</label>
+            <input
+              id="phys-name"
+              placeholder="Charlie Oliver"
+              className="input-premium"
+              value={physicalHolderName}
+              onChange={(e) => setPhysicalHolderName(e.target.value)}
+            />
+          </div>
+          <button
+            type="button"
+            disabled={issueCardMutation.isPending}
+            onClick={() => void submitPhysicalRequest()}
+            className="btn-primary w-full flex items-center justify-center gap-2 min-h-[48px]"
+          >
+            {issueCardMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" strokeWidth={2} />
+                Submitting…
+              </>
+            ) : (
+              "Request physical card"
+            )}
+          </button>
         </div>
       </div>
     );
@@ -349,7 +684,56 @@ const CardsPage = () => {
 
   // --- Main view ---
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <>
+      <AlertDialog
+        open={removeDialogOpen}
+        onOpenChange={(open) => {
+          setRemoveDialogOpen(open);
+          if (!open) setRemoveTarget(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-[min(100vw-2rem,400px)] rounded-2xl border-border/60 bg-card p-5 shadow-2xl sm:p-6 gap-4">
+          <AlertDialogHeader className="text-left space-y-2">
+            <AlertDialogTitle className="text-[17px] font-bold tracking-tight pr-6">
+              Remove this card?
+            </AlertDialogTitle>
+            {removeTarget ? (
+              <AlertDialogDescription className="text-[13px] leading-relaxed text-muted-foreground">
+                This{" "}
+                <strong className="font-semibold text-foreground">
+                  {removeTarget.type === "virtual" ? "digital" : "physical"}
+                </strong>{" "}
+                card ending in{" "}
+                <span className="font-mono tabular-nums font-semibold text-foreground">{removeTarget.last4}</span>{" "}
+                will be removed from this wallet. You can’t undo this here.
+              </AlertDialogDescription>
+            ) : null}
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
+            <AlertDialogCancel className="mt-0 min-h-[48px] w-full rounded-xl border-border/50 sm:w-auto sm:min-w-[120px]">
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-h-[48px] w-full rounded-xl font-semibold sm:w-auto sm:min-w-[140px]"
+              disabled={deleteCardMutation.isPending}
+              onClick={confirmRemoveCard}
+            >
+              {deleteCardMutation.isPending ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin shrink-0" strokeWidth={2} aria-hidden />
+                  Removing…
+                </span>
+              ) : (
+                "Remove card"
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
         <div className="flex items-center gap-3 px-5 py-3.5">
           <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60 md:hidden">
@@ -373,7 +757,7 @@ const CardsPage = () => {
           {cards.map((c, i) => (
             <button type="button" key={c.id} onClick={() => setActiveCardIndex(i)}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-semibold transition-all ${
-                i === activeCardIndex ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
+                i === safeCardIndex ? "bg-foreground text-background" : "text-muted-foreground hover:bg-muted"
               }`}
             >
               {c.type === "virtual" ? "Virtual" : "Physical"} ···{c.last4}
@@ -391,7 +775,7 @@ const CardsPage = () => {
             exit={{ opacity: 0, scale: 0.97 }}
             transition={{ duration: 0.25 }}
           >
-            <div className={`relative rounded-3xl bg-gradient-to-br ${cardGradients[activeCard.color]} p-6 pb-5 shadow-elevated overflow-hidden aspect-[1.7/1] max-w-sm mx-auto`}>
+            <div className={`relative rounded-3xl bg-gradient-to-br ${gradientClassFor(activeCard.color)} p-6 pb-5 shadow-elevated overflow-hidden aspect-[1.7/1] max-w-sm mx-auto`}>
               <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/[0.04]" />
               <div className="absolute bottom-4 right-6 h-20 w-20 rounded-full bg-white/[0.03]" />
 
@@ -441,7 +825,7 @@ const CardsPage = () => {
         </AnimatePresence>
 
         {/* Quick actions */}
-        <div className="flex justify-center gap-2.5">
+        <div className="flex justify-center gap-2.5 flex-wrap">
           <CardAction icon={showDetails ? EyeOff : Eye} label={showDetails ? "Hide" : "Show"} onClick={() => setShowDetails(!showDetails)} />
           <CardAction
             icon={isFrozen(activeCard) ? Sun : Snowflake}
@@ -466,6 +850,13 @@ const CardsPage = () => {
             }}
           />
           <CardAction icon={AlertTriangle} label="Report" onClick={() => setView("lost")} />
+          <CardAction
+            icon={Trash2}
+            label="Remove"
+            onClick={openRemoveDialog}
+            danger
+            disabled={deleteCardMutation.isPending}
+          />
         </div>
 
         {/* Controls */}
@@ -559,6 +950,7 @@ const CardsPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

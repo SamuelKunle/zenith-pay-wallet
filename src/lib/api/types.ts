@@ -89,8 +89,22 @@ export interface WalletCardsListResponse {
   cards: WalletCardDto[];
 }
 
+/** User-supplied card — virtual cards must include full details (no server-side generation). */
+export interface WalletCardManualDetails {
+  pan: string;
+  expiry: string;
+  cvv: string;
+  holderName: string;
+  brand: WalletCardBrand;
+  color: WalletCardColor;
+}
+
 export interface WalletCardCreateBody {
   type: "virtual" | "physical";
+  /** Required when `type` is `virtual`. */
+  details?: WalletCardManualDetails;
+  /** Physical card: name shown on / shipped with card (optional). */
+  holderName?: string;
 }
 
 export interface WalletCardPatchBody {

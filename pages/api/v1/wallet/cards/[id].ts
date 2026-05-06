@@ -3,6 +3,7 @@ import { allowMethods, methodNotAllowed } from "@/server/http/jsonHandler";
 import { readRequestCorrelation } from "@/server/http/requestContext";
 import { logger } from "@/lib/logger";
 import type { WalletCardPatchBody } from "@/lib/api/types";
+import { removeCard } from "@/server/cards/cardMemory";
 import { setFrozen } from "@/server/cards/cardService";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -15,8 +16,31 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const ctx = readRequestCorrelation(req);
 
-  if (!allowMethods(["PATCH"], req)) {
-    methodNotAllowed(res, ["PATCH"]);
+  if (!allowMethods(["PATCH", "DELETE"], req)) {
+    methodNotAllowed(res, ["PATCH", "DELETE"]);
+    return;
+  }
+
+  if (req.method === "DELETE") {
+    logger.info("api.wallet.cards.delete", {
+      requestId: ctx.requestId,
+      session: ctx.sessionSubject,
+      cardId: id,
+    });
+    try {
+      const ok = removeCard(id);
+      if (!ok) {
+        res.status(404).json({
+          error: { code: "card_not_found", message: "No card with that id." },
+        });
+        return;
+      }
+      res.status(204).end();
+    } catch {
+      res.status(500).json({
+        error: { code: "card_delete_failed", message: "Could not remove card." },
+      });
+    }
     return;
   }
 

@@ -1,4 +1,4 @@
-import type { WalletCardDto } from "@/lib/api/types";
+import type { WalletCardCreateBody, WalletCardDto } from "@/lib/api/types";
 import {
   appendCard,
   findCard,
@@ -6,15 +6,9 @@ import {
   updateCard,
   type StoredWalletCard,
 } from "@/server/cards/cardMemory";
-import {
-  defaultExpiry,
-  formatPan,
-  generateCvv,
-  generatePanDigits,
-  pickBrand,
-  pickColor,
-} from "@/server/cards/cardIssuer";
+import { formatPan, pickBrand, pickColor } from "@/server/cards/cardIssuer";
 import { walletCardId } from "@/server/cards/cardIds";
+import { CardValidationError, buildStoredVirtualFromDetails } from "@/server/cards/cardValidation";
 
 const DEFAULT_HOLDER = "Charlie Oliver";
 
@@ -38,30 +32,23 @@ export function cardsSnapshotForApi(): WalletCardDto[] {
   return listCardsSnapshot().map(toDto);
 }
 
-export function issueCard(type: "virtual" | "physical", holderName = DEFAULT_HOLDER): WalletCardDto {
-  const index = listCardsSnapshot().length;
-  const brand = pickBrand();
-  const color = pickColor(index);
-
-  if (type === "virtual") {
-    const panDigits = generatePanDigits(brand);
-    const last4 = panDigits.slice(-4);
-    const stored: StoredWalletCard = {
-      id: walletCardId(),
-      type: "virtual",
-      holderName,
-      last4,
-      expiry: defaultExpiry(),
-      panDigits,
-      cvv: generateCvv(),
-      brand,
-      color,
-      status: "active",
-    };
+/** Primary entry — virtual cards require `details`; physical uses optional holder name + pending placeholder. */
+export function createWalletCard(body: WalletCardCreateBody): WalletCardDto {
+  if (body.type === "virtual") {
+    if (!body.details) {
+      throw new CardValidationError(
+        "Virtual cards require your card number, expiry, CVV, name on card, brand, and card style.",
+      );
+    }
+    const stored = buildStoredVirtualFromDetails(body.details);
     appendCard(stored);
     return toDto(stored);
   }
 
+  const holderName = (body.holderName ?? "").trim() || DEFAULT_HOLDER;
+  const index = listCardsSnapshot().length;
+  const brand = pickBrand();
+  const color = pickColor(index);
   const last4 = String(1000 + Math.floor(Math.random() * 9000));
   const stored: StoredWalletCard = {
     id: walletCardId(),
