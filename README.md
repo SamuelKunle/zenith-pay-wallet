@@ -22,6 +22,26 @@ This repository is designed as a high-fidelity frontend demo for digital wallet 
 - Responsive mobile and desktop layouts
 - Light and dark theme support
 
+### Demo modules (frontend-only)
+
+These screens mirror **deployment-grade** wallet capabilities without live payment rails. Open **Services → Wallet tools**, or use direct routes:
+
+| Flow | Route |
+| --- | --- |
+| Fund wallet (ACH / card / payroll previews) | `/fund-wallet` |
+| Scheduled & recurring payments | `/scheduled-payments` |
+| Request-money link generator | `/request-money` |
+| Dispute center mock cases | `/disputes` |
+| Device & session revocation UX | `/sessions` |
+| Granular notification preferences | `/notification-preferences` |
+
+- **`DemoBanner`** (`src/components/demo/DemoBanner.tsx`) appears on the home dashboard and new modules when demo mode is on.
+- **`NEXT_PUBLIC_DEMO_MODE`**: set to `false` to hide demo-only callouts (defaults to demo on).
+
+### Integration seams
+
+- `src/lib/adapters/payments.ts` — placeholder `PaymentsPort` with a `demoPaymentsAdapter` for fee quotes. Swap for real API clients behind the same interface when you wire a backend.
+
 ## Tech Stack
 
 - Next.js

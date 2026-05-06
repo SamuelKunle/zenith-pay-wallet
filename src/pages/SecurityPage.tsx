@@ -159,7 +159,12 @@ const SecurityPage = () => {
 
         {activeTab === "devices" && (
           <div className="space-y-3">
-            <p className="text-[11px] text-muted-foreground">Devices with access to your account</p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[11px] text-muted-foreground">Devices with access to your account</p>
+              <Link to="/sessions" className="text-[11px] font-bold text-primary shrink-0">
+                Session manager →
+              </Link>
+            </div>
             {trustedDevices.map((device, i) => (
               <motion.div key={device.name} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                 className="rounded-2xl bg-card shadow-card p-4"

@@ -1,4 +1,4 @@
-import { ArrowLeft, Moon, Sun, Monitor, ChevronRight, Globe, Bell, Lock, Eye, Fingerprint, Smartphone, Trash2, FileText, Info, MessageSquare } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Monitor, ChevronRight, Globe, Bell, Lock, Eye, Fingerprint, Smartphone, Trash2, FileText, Info, MessageSquare, BellRing, MonitorSmartphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Switch } from "@/components/ui/switch";
@@ -70,6 +70,19 @@ const SettingsPage = () => {
             <SettingToggle icon={Bell} label="Push Notifications" sub="Receive push alerts" value={pushNotifs} onChange={setPushNotifs} bg="bg-primary/10" color="text-primary" />
             <SettingToggle icon={MessageSquare} label="Email Notifications" sub="Transaction receipts & updates" value={emailNotifs} onChange={setEmailNotifs} bg="bg-[hsl(225_55%_92%)]" color="text-[hsl(225_60%_42%)]" />
             <SettingToggle icon={Smartphone} label="SMS Notifications" sub="Text alerts for transactions" value={smsNotifs} onChange={setSmsNotifs} bg="bg-accent/12" color="text-accent-foreground" />
+            <Link
+              to="/notification-preferences"
+              className="flex items-center gap-3 px-4 py-3.5 w-full hover:bg-muted/40 transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <BellRing className="h-[18px] w-[18px] text-primary" strokeWidth={1.8} />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-bold text-foreground">Detailed alert preferences</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Login, transfers, merchant, marketing</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-foreground/20 shrink-0" />
+            </Link>
           </div>
         </div>
 
@@ -77,6 +90,19 @@ const SettingsPage = () => {
         <div className="space-y-2 animate-slide-up" style={{ animationDelay: "0.1s" }}>
           <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Security & Privacy</h3>
           <div className="rounded-2xl bg-card shadow-card overflow-hidden divide-y divide-border/50">
+            <Link
+              to="/sessions"
+              className="flex items-center gap-3 px-4 py-3.5 w-full hover:bg-muted/40 transition-colors"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(225_55%_92%)]">
+                <MonitorSmartphone className="h-[18px] w-[18px] text-[hsl(225_60%_42%)]" strokeWidth={1.8} />
+              </div>
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-[13px] font-bold text-foreground">Devices & sessions</p>
+                <p className="text-[11px] font-medium text-muted-foreground">Revoke stray logins (demo)</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-foreground/20 shrink-0" />
+            </Link>
             <SettingToggle icon={Fingerprint} label="Biometric Login" sub="Use fingerprint or Face ID" value={biometric} onChange={setBiometric} bg="bg-success/10" color="text-success" />
             <SettingToggle icon={Eye} label="Hide Balance" sub="Mask balance on home screen" value={hideBalance} onChange={setHideBalance} bg="bg-[hsl(280_50%_92%)]" color="text-[hsl(280_55%_42%)]" />
             <SettingLink icon={Lock} label="Change PIN" sub="Update your transaction PIN" bg="bg-warning/12" color="text-warning" />
@@ -111,7 +137,7 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        <p className="text-center text-[10px] font-semibold text-foreground/25 py-4 tracking-wide">PAYNAIJA v1.0.0 • MADE WITH ❤️ IN LAGOS</p>
+        <p className="text-center text-[10px] font-semibold text-foreground/25 py-4 tracking-wide">ZENITH PAY WALLET • v1.0.0 • DEMO BUILD</p>
       </div>
     </div>
   );

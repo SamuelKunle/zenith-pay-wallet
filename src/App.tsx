@@ -33,6 +33,12 @@ import InsightsPage from "./pages/InsightsPage";
 import LandingPage from "./pages/LandingPage";
 import TermsPage from "./pages/TermsPage";
 import NotFound from "./pages/NotFound";
+import FundWalletPage from "./pages/FundWalletPage";
+import ScheduledPaymentsPage from "./pages/ScheduledPaymentsPage";
+import RequestMoneyPage from "./pages/RequestMoneyPage";
+import DisputesPage from "./pages/DisputesPage";
+import SessionsPage from "./pages/SessionsPage";
+import NotificationPreferencesPage from "./pages/NotificationPreferencesPage";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +99,12 @@ const App = () => {
                     <Route path="/support" element={<SupportPage />} />
                     <Route path="/services" element={<ServicesPage />} />
                     <Route path="/services/:serviceId" element={<ServiceDetailPage />} />
+                    <Route path="/fund-wallet" element={<FundWalletPage />} />
+                    <Route path="/scheduled-payments" element={<ScheduledPaymentsPage />} />
+                    <Route path="/request-money" element={<RequestMoneyPage />} />
+                    <Route path="/disputes" element={<DisputesPage />} />
+                    <Route path="/sessions" element={<SessionsPage />} />
+                    <Route path="/notification-preferences" element={<NotificationPreferencesPage />} />
                     <Route path="/rewards" element={<RewardsPage />} />
                     <Route path="/insights" element={<InsightsPage />} />
                     <Route path="/terms" element={<TermsPage />} />

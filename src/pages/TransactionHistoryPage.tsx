@@ -1,9 +1,10 @@
-import { ArrowLeft, Search, Filter, ArrowUpRight, ArrowDownLeft, ShoppingBag, Smartphone, Zap } from "lucide-react";
+import { ArrowLeft, Search, Filter, ArrowUpRight, ArrowDownLeft, ShoppingBag, Smartphone, Zap, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { PremiumReceipt, ReceiptData } from "@/components/receipts/PremiumReceipt";
 import { StatusPill } from "@/components/states/StateUI";
+import { toast } from "@/hooks/use-toast";
 
 const tabs = ["All", "Sent", "Received", "Bills", "Merchant"];
 
@@ -131,7 +132,20 @@ const TransactionHistoryPage = () => {
           </Link>
           <h1 className="text-page-title">Transactions</h1>
           <div className="flex-1" />
-          <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
+          <button
+            type="button"
+            aria-label="Export statements"
+            onClick={() =>
+              toast({
+                title: "Export prepared (demo)",
+                description: "Production would queue CSV/PDF generation and deliver a signed download URL.",
+              })
+            }
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60 hover:bg-secondary transition-colors"
+          >
+            <Download className="h-[16px] w-[16px] text-muted-foreground" strokeWidth={2} />
+          </button>
+          <button type="button" className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
             <Filter className="h-[16px] w-[16px] text-muted-foreground" strokeWidth={2} />
           </button>
         </div>

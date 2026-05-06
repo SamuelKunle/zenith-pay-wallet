@@ -2,7 +2,8 @@ import {
   Zap, Droplets, Wifi, Tv, Phone, Building2, GraduationCap, Star,
   Smartphone, Globe, CreditCard, Landmark, Shield, TrendingUp, PiggyBank, Banknote,
   Receipt, HeartPulse, Stethoscope, CalendarCheck, Bus, Plane, Hotel, ShoppingBag,
-  Gamepad2, ArrowUpDown, Layers, Wallet, MapPin, type LucideIcon,
+  Gamepad2, ArrowUpDown, Layers, Wallet, MapPin, ArrowDownToLine, CalendarClock, Link2, Scale,
+  MonitorSmartphone, BellRing, type LucideIcon,
 } from "lucide-react";
 
 export interface ServiceItem {
@@ -22,6 +23,20 @@ export interface ServiceCategory {
 }
 
 export const serviceCategories: ServiceCategory[] = [
+  {
+    title: "Wallet tools",
+    subtitle: "Funding, automation & account safety",
+    sectionIcon: Wallet,
+    sectionColor: "text-primary",
+    items: [
+      { icon: ArrowDownToLine, label: "Fund wallet", bg: "bg-primary/10", color: "text-primary", path: "/fund-wallet" },
+      { icon: CalendarClock, label: "Scheduled pays", bg: "bg-accent/12", color: "text-accent-foreground", path: "/scheduled-payments" },
+      { icon: Link2, label: "Request money", bg: "bg-success/10", color: "text-success", path: "/request-money" },
+      { icon: Scale, label: "Disputes", bg: "bg-warning/12", color: "text-warning", path: "/disputes" },
+      { icon: MonitorSmartphone, label: "Sessions", bg: "bg-[hsl(225_55%_92%)]", color: "text-[hsl(225_60%_42%)]", path: "/sessions" },
+      { icon: BellRing, label: "Alert prefs", bg: "bg-[hsl(280_50%_92%)]", color: "text-[hsl(280_55%_42%)]", path: "/notification-preferences" },
+    ],
+  },
   {
     title: "Transfer & Receive",
     subtitle: "Send, receive & split money",
