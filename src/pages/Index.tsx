@@ -1,6 +1,8 @@
 import { Bell, Search, Lock, Sparkles, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getTelemetry } from "@/lib/telemetry";
+import { TelemetryEvents } from "@/lib/telemetry/events";
 import BalanceCard from "@/components/dashboard/BalanceCard";
 import QuickActions from "@/components/dashboard/QuickActions";
 import TransactionList from "@/components/dashboard/TransactionList";
@@ -17,6 +19,10 @@ const Index = () => {
   const navigate = useNavigate();
   const { favouriteServices } = useFavourites();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    getTelemetry().page("dashboard", { surface: "home" });
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">

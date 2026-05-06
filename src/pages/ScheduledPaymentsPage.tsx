@@ -10,6 +10,7 @@ import { useSchedulesDemoQuery } from "@/lib/demo/screenQueries";
 import { formatUsdLineFromCents } from "@/lib/format/money";
 import { InlineQueryError, ListRowSkeleton } from "@/components/states/AsyncContent";
 import { EmptyState } from "@/components/states/StateUI";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 interface ScheduleRowUi {
   id: string;
@@ -85,7 +86,14 @@ const ScheduledPaymentsPage = () => {
             <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
           </Link>
           <div className="flex-1 min-w-0">
-            <h1 className="text-page-title truncate">Scheduled payments</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-page-title truncate">Scheduled payments</h1>
+              {isFeatureEnabled("scheduledBeta") && (
+                <span className="shrink-0 rounded-full bg-primary/12 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">
+                  Beta
+                </span>
+              )}
+            </div>
             <p className="text-caption truncate">Recurring sends & autopay</p>
           </div>
         </div>

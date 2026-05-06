@@ -1,6 +1,9 @@
 import { ArrowLeft, Eye, EyeOff, Shield, Fingerprint, Lock, CheckCircle2, AlertCircle, Loader2, HelpCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTelemetry } from "@/lib/telemetry";
+import { TelemetryEvents } from "@/lib/telemetry/events";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, motionConfig } from "@/components/PageTransition";
 
@@ -9,6 +12,7 @@ const ease = motionConfig.ease;
 type AuthState = "idle" | "loading" | "error" | "locked";
 
 const LoginPage = () => {
+  const { signInWithCredentials } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [authState, setAuthState] = useState<AuthState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -25,6 +29,8 @@ const LoginPage = () => {
     setAuthState("loading");
     setTimeout(() => {
       setAuthState("idle");
+      signInWithCredentials(email, password);
+      getTelemetry().track(TelemetryEvents.LOGIN_SUCCESS, { method: "password" });
       navigate("/");
     }, 1600);
   };

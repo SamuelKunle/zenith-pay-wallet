@@ -1,6 +1,8 @@
 import { ArrowLeft, Eye, EyeOff, Shield, Lock, CheckCircle2, Loader2, Fingerprint, User, Mail, Phone, HelpCircle, X, FileText } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { getTelemetry } from "@/lib/telemetry";
+import { TelemetryEvents } from "@/lib/telemetry/events";
 import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp, motionConfig } from "@/components/PageTransition";
 
@@ -43,6 +45,7 @@ const SignupPage = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
+      getTelemetry().track(TelemetryEvents.SIGNUP_OTP_COMPLETE, { step: "otp" });
       navigate("/kyc");
     }, 1400);
   };

@@ -1,5 +1,6 @@
 {
   "name": "zenith-pay",
+  "description": "Premium Next.js wallet prototype — full-stack money flows, Pages API, TanStack Query, mock telemetry & session-correlated clients.",
   "private": true,
   "version": "0.0.0",
   "type": "module",

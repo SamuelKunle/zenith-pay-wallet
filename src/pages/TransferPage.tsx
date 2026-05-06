@@ -1,10 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowLeft, Search, ChevronRight, User, Building2, CheckCircle2, Fingerprint } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  ChevronRight,
+  User,
+  Building2,
+  CheckCircle2,
+  Fingerprint,
+} from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { TrustSignal, VerifiedRecipient, TrustBadge } from "@/components/security/SecurityUI";
+import { motion, MotionConfig } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import {
+  TrustSignal,
+  VerifiedRecipient,
+  TrustBadge,
+} from "@/components/security/SecurityUI";
 import { ProcessingState, FailedState } from "@/components/states/StateUI";
-import { PremiumReceipt, ReceiptSuccessHeader, ReceiptData } from "@/components/receipts/PremiumReceipt";
+import {
+  PremiumReceipt,
+  ReceiptSuccessHeader,
+  ReceiptData,
+} from "@/components/receipts/PremiumReceipt";
 import {
   FeeTransparencyCard,
   SecureConfirmation,
@@ -17,29 +34,74 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useWalletBalance } from "@/hooks/useWalletBalance";
 import { postJson, ApiRequestError } from "@/lib/api/fetchJson";
-import type { PaymentQuoteResponse, TransferCreateResponse } from "@/lib/api/types";
+import type {
+  PaymentQuoteResponse,
+  TransferCreateResponse,
+} from "@/lib/api/types";
 import { formatUsdLineFromCents } from "@/lib/format/money";
+import { getTelemetry } from "@/lib/telemetry";
+import { TelemetryEvents } from "@/lib/telemetry/events";
 
 const recentRecipients = [
-  { name: "Emerson Obi", tag: "@emeka_obi", avatar: "EO", bank: "Zenith Pay Wallet", verified: true },
-  { name: "Avery Nwachukwu", tag: "@adaobi", avatar: "AN", bank: "Global Bank", verified: true },
-  { name: "Kendall Adrian", tag: "@kemi_a", avatar: "KA", bank: "Zenith Pay Wallet", verified: true },
-  { name: "Taylor Bakare", tag: "@tunde_b", avatar: "TB", bank: "UBA", verified: true },
-  { name: "Fatima Yusuf", tag: "@fatima_y", avatar: "FY", bank: "Access Bank", verified: true },
+  {
+    name: "Emerson Obi",
+    tag: "@emeka_obi",
+    avatar: "EO",
+    bank: "Zenith Pay Wallet",
+    verified: true,
+  },
+  {
+    name: "Avery Nwachukwu",
+    tag: "@adaobi",
+    avatar: "AN",
+    bank: "Global Bank",
+    verified: true,
+  },
+  {
+    name: "Kendall Adrian",
+    tag: "@kemi_a",
+    avatar: "KA",
+    bank: "Zenith Pay Wallet",
+    verified: true,
+  },
+  {
+    name: "Taylor Bakare",
+    tag: "@tunde_b",
+    avatar: "TB",
+    bank: "UBA",
+    verified: true,
+  },
+  {
+    name: "Fatima Yusuf",
+    tag: "@fatima_y",
+    avatar: "FY",
+    bank: "Access Bank",
+    verified: true,
+  },
 ];
 
-type Step = "select" | "amount" | "confirm" | "processing" | "success" | "failed";
+type Step =
+  | "select"
+  | "amount"
+  | "confirm"
+  | "processing"
+  | "success"
+  | "failed";
 
 const TransferPage = () => {
+  const prefersReducedMotion = usePrefersReducedMotion();
   const queryClient = useQueryClient();
   const { data: balance, isPending: balanceLoading } = useWalletBalance();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [step, setStep] = useState<Step>("select");
-  const [selectedRecipient, setSelectedRecipient] = useState<(typeof recentRecipients)[0] | null>(null);
+  const [selectedRecipient, setSelectedRecipient] = useState<
+    (typeof recentRecipients)[0] | null
+  >(null);
   const [quote, setQuote] = useState<PaymentQuoteResponse | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
-  const [lastTransfer, setLastTransfer] = useState<TransferCreateResponse | null>(null);
+  const [lastTransfer, setLastTransfer] =
+    useState<TransferCreateResponse | null>(null);
   const [transferError, setTransferError] = useState<string | null>(null);
 
   const numericAmount = Number(amount) || 0;
@@ -109,6 +171,11 @@ const TransferPage = () => {
       .then((r) => {
         setLastTransfer(r);
         setStep("success");
+        getTelemetry().track(TelemetryEvents.TRANSFER_COMPLETED, {
+          amountCents,
+          reference: r.reference,
+          recipientTag: selectedRecipient?.tag,
+        });
         queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
         queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
       })
@@ -117,11 +184,20 @@ const TransferPage = () => {
           "The transfer service returned an error. Your balance should be unchanged if the debit did not settle.";
         if (e instanceof ApiRequestError && e.status === 409) {
           msg = "Insufficient balance for this amount including fees.";
-        } else if (e instanceof ApiRequestError && typeof e.body === "object" && e.body !== null && "error" in e.body) {
+        } else if (
+          e instanceof ApiRequestError &&
+          typeof e.body === "object" &&
+          e.body !== null &&
+          "error" in e.body
+        ) {
           const errBody = e.body as { error?: { message?: string } };
           if (errBody.error?.message) msg = errBody.error.message;
         }
         setTransferError(msg);
+        getTelemetry().track(TelemetryEvents.TRANSFER_FAILED, {
+          amountCents,
+          message: msg,
+        });
         setStep("failed");
       });
   };
@@ -153,16 +229,29 @@ const TransferPage = () => {
               onClick={() => setStep("amount")}
               className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60"
             >
-              <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
+              <ArrowLeft
+                className="h-[17px] w-[17px] text-foreground"
+                strokeWidth={2}
+              />
             </button>
-            <h1 className="text-[15px] font-bold text-foreground">Review Transfer</h1>
+            <h1 className="text-[15px] font-bold text-foreground">
+              Review Transfer
+            </h1>
           </div>
         </header>
 
         <div className="flex-1 px-5 py-5 space-y-4">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-center py-4">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mb-2">You're sending</p>
-            <p className="text-[34px] font-extrabold text-foreground tabular-nums">${fmtAmt(amount)}</p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center py-4"
+          >
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest mb-2">
+              You're sending
+            </p>
+            <p className="text-[34px] font-extrabold text-foreground tabular-nums">
+              ${fmtAmt(amount)}
+            </p>
           </motion.div>
 
           <motion.div
@@ -183,22 +272,42 @@ const TransferPage = () => {
             </div>
 
             <div className="px-5 py-3">
-              <FeeTransparencyCard amount={numericAmount} fee={feeDollars} total={totalDollars}>
+              <FeeTransparencyCard
+                amount={numericAmount}
+                fee={feeDollars}
+                total={totalDollars}
+              >
                 {note && (
                   <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/10">
-                    <span className="text-[12px] text-muted-foreground">Note</span>
-                    <span className="text-[12px] font-semibold text-foreground">{note}</span>
+                    <span className="text-[12px] text-muted-foreground">
+                      Note
+                    </span>
+                    <span className="text-[12px] font-semibold text-foreground">
+                      {note}
+                    </span>
                   </div>
                 )}
               </FeeTransparencyCard>
               <div className="flex items-center justify-between mt-2.5">
-                <InlineTrustLabel icon="check" label="Recipient verified" variant="success" />
-                <InlineTrustLabel icon="lock" label="Encrypted" variant="muted" />
+                <InlineTrustLabel
+                  icon="check"
+                  label="Recipient verified"
+                  variant="success"
+                />
+                <InlineTrustLabel
+                  icon="lock"
+                  label="Encrypted"
+                  variant="muted"
+                />
               </div>
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+          >
             <SecureConfirmation method="biometric" />
           </motion.div>
         </div>
@@ -226,14 +335,20 @@ const TransferPage = () => {
     const receiptTotal = lastTransfer.totalCents / 100;
 
     const receiptData: ReceiptData = {
-      type: selectedRecipient.bank?.includes("Zenith Pay") ? "wallet-transfer" : "bank-transfer",
+      type: selectedRecipient.bank?.includes("Zenith Pay")
+        ? "wallet-transfer"
+        : "bank-transfer",
       status: "success",
       amount: receiptAmount,
       fee: receiptFee,
       total: receiptTotal,
       reference: lastTransfer.reference,
       date: new Date(),
-      sender: { name: "Charlie Oliver", detail: "Personal · Zenith Pay", avatar: "CO" },
+      sender: {
+        name: "Charlie Oliver",
+        detail: "Personal · Zenith Pay",
+        avatar: "CO",
+      },
       recipient: {
         name: selectedRecipient.name,
         detail: selectedRecipient.bank,
@@ -246,27 +361,36 @@ const TransferPage = () => {
     };
 
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5 py-10">
-        <ReceiptSuccessHeader title="Transfer Complete" subtitle="Your money is on its way" />
-        <PremiumReceipt data={receiptData} onDone={() => {}} onShare={() => {}} />
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          type="button"
-          onClick={() => {
-            setStep("select");
-            setAmount("");
-            setNote("");
-            setSelectedRecipient(null);
-            setLastTransfer(null);
-            setQuote(null);
-          }}
-          className="text-[12px] font-semibold text-primary mt-4"
-        >
-          Send another transfer
-        </motion.button>
-      </div>
+      <MotionConfig reducedMotion={prefersReducedMotion ? "always" : "user"}>
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center px-5 py-10">
+          <ReceiptSuccessHeader
+            title="Transfer Complete"
+            subtitle="Your money is on its way"
+          />
+          <PremiumReceipt
+            data={receiptData}
+            onDone={() => {}}
+            onShare={() => {}}
+          />
+          <motion.button
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { delay: 0.4 }}
+            type="button"
+            onClick={() => {
+              setStep("select");
+              setAmount("");
+              setNote("");
+              setSelectedRecipient(null);
+              setLastTransfer(null);
+              setQuote(null);
+            }}
+            className="text-[12px] font-semibold text-primary mt-4"
+          >
+            Send another transfer
+          </motion.button>
+        </div>
+      </MotionConfig>
     );
   }
 
@@ -314,51 +438,87 @@ const TransferPage = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
           <div className="flex items-center gap-3 px-5 py-3.5">
-            <button type="button" onClick={() => setStep("select")} className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60">
-              <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
+            <button
+              type="button"
+              onClick={() => setStep("select")}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60"
+            >
+              <ArrowLeft
+                className="h-[17px] w-[17px] text-foreground"
+                strokeWidth={2}
+              />
             </button>
-            <h1 className="text-[15px] font-bold text-foreground">Enter Amount</h1>
+            <h1 className="text-[15px] font-bold text-foreground">
+              Enter Amount
+            </h1>
           </div>
         </header>
 
         <div className="flex-1 px-5 py-5 flex flex-col">
-          <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-center mb-6">
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-center mb-6"
+          >
             <div className="flex items-center gap-2 rounded-full bg-card shadow-card border border-border/15 pl-1 pr-3.5 py-1">
               <div className="flex h-7 w-7 items-center justify-center rounded-full balance-gradient text-[9px] font-bold text-white">
                 {selectedRecipient.avatar}
               </div>
-              <span className="text-[12px] font-semibold text-foreground">{selectedRecipient.name}</span>
-              {selectedRecipient.verified && <CheckCircle2 className="h-3 w-3 text-success" strokeWidth={2} />}
+              <span className="text-[12px] font-semibold text-foreground">
+                {selectedRecipient.name}
+              </span>
+              {selectedRecipient.verified && (
+                <CheckCircle2
+                  className="h-3 w-3 text-success"
+                  strokeWidth={2}
+                />
+              )}
             </div>
           </motion.div>
 
           <div className="flex-1 flex flex-col items-center justify-center -mt-8">
             <div className="flex items-baseline gap-0.5 mb-2">
-              <span className="text-[24px] font-bold text-muted-foreground/60">$</span>
+              <span className="text-[24px] font-bold text-muted-foreground/60">
+                $
+              </span>
               <input
                 type="text"
                 inputMode="numeric"
                 value={amount ? Number(amount).toLocaleString() : ""}
-                onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
+                onChange={(e) =>
+                  setAmount(e.target.value.replace(/[^0-9]/g, ""))
+                }
                 placeholder="0"
                 className="input-amount w-48"
                 autoFocus
               />
             </div>
-            <p className={`text-[11px] mb-5 ${insufficientBalance ? "text-destructive font-semibold" : "text-muted-foreground"}`}>
+            <p
+              className={`text-[11px] mb-5 ${insufficientBalance ? "text-destructive font-semibold" : "text-muted-foreground"}`}
+            >
               {insufficientBalance ? "Insufficient balance" : balanceLabel}
             </p>
 
             <div className="flex gap-2">
               {["1000", "5000", "10000", "50000"].map((val) => (
-                <button key={val} type="button" onClick={() => setAmount(val)} className={`amount-chip ${amount === val ? "active" : ""}`}>
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setAmount(val)}
+                  className={`amount-chip ${amount === val ? "active" : ""}`}
+                >
                   ${Number(val).toLocaleString()}
                 </button>
               ))}
             </div>
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="space-y-3 mb-5">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="space-y-3 mb-5"
+          >
             <input
               type="text"
               value={note}
@@ -370,7 +530,11 @@ const TransferPage = () => {
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-3">
                   <span className="text-caption">{feeLabel}</span>
-                  <InlineTrustLabel icon="shield" label="Quoted by API" variant="muted" />
+                  <InlineTrustLabel
+                    icon="shield"
+                    label="Quoted by API"
+                    variant="muted"
+                  />
                 </div>
                 <span className="text-[11px] font-semibold text-foreground tabular-nums">
                   Total:{" "}
@@ -384,7 +548,12 @@ const TransferPage = () => {
             )}
           </motion.div>
 
-          <button type="button" onClick={() => setStep("confirm")} disabled={reviewDisabled} className="btn-primary">
+          <button
+            type="button"
+            onClick={() => setStep("confirm")}
+            disabled={reviewDisabled}
+            className="btn-primary"
+          >
             Review Transfer
           </button>
         </div>
@@ -396,47 +565,94 @@ const TransferPage = () => {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-xl border-b border-border/20">
         <div className="flex items-center gap-3 px-5 py-3.5">
-          <Link to="/" className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60 md:hidden">
-            <ArrowLeft className="h-[17px] w-[17px] text-foreground" strokeWidth={2} />
+          <Link
+            to="/"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/60 md:hidden"
+          >
+            <ArrowLeft
+              className="h-[17px] w-[17px] text-foreground"
+              strokeWidth={2}
+            />
           </Link>
           <h1 className="text-[15px] font-bold text-foreground">Send Money</h1>
         </div>
       </header>
 
       <div className="px-5 py-4 space-y-5">
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="input-search">
-          <Search className="h-[16px] w-[16px] text-muted-foreground" strokeWidth={2} />
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="input-search"
+        >
+          <Search
+            className="h-[16px] w-[16px] text-muted-foreground"
+            strokeWidth={2}
+          />
           <input type="text" placeholder="Search name, tag, or phone number" />
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }} className="space-y-2">
-          <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Transfer To</h3>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.03 }}
+          className="space-y-2"
+        >
+          <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            Transfer To
+          </h3>
           <div className="rounded-2xl bg-card shadow-card overflow-hidden">
-            <Link to="/transfer/bank" className="flex items-center gap-3 px-4 py-3 border-b border-border/15 hover:bg-muted/15 transition-colors">
+            <Link
+              to="/transfer/bank"
+              className="flex items-center gap-3 px-4 py-3 border-b border-border/15 hover:bg-muted/15 transition-colors"
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(225_50%_95%)]">
-                <Building2 className="h-[17px] w-[17px] text-[hsl(225_55%_45%)]" strokeWidth={1.8} />
+                <Building2
+                  className="h-[17px] w-[17px] text-[hsl(225_55%_45%)]"
+                  strokeWidth={1.8}
+                />
               </div>
               <div className="flex-1">
-                <p className="text-[13px] font-semibold text-foreground">Bank Account</p>
-                <p className="text-[11px] text-muted-foreground">Send to any global bank</p>
+                <p className="text-[13px] font-semibold text-foreground">
+                  Bank Account
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Send to any global bank
+                </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground/80" />
             </Link>
-            <button type="button" className="flex items-center gap-3 px-4 py-3 w-full hover:bg-muted/15 transition-colors">
+            <button
+              type="button"
+              className="flex items-center gap-3 px-4 py-3 w-full hover:bg-muted/15 transition-colors"
+            >
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/8">
-                <User className="h-[17px] w-[17px] text-primary" strokeWidth={1.8} />
+                <User
+                  className="h-[17px] w-[17px] text-primary"
+                  strokeWidth={1.8}
+                />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-[13px] font-semibold text-foreground">Zenith Pay User</p>
-                <p className="text-[11px] text-muted-foreground">Send to wallet tag or phone</p>
+                <p className="text-[13px] font-semibold text-foreground">
+                  Zenith Pay User
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Send to wallet tag or phone
+                </p>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground/80" />
             </button>
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }} className="space-y-2.5">
-          <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Recent</h3>
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.06 }}
+          className="space-y-2.5"
+        >
+          <h3 className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            Recent
+          </h3>
           <div className="flex gap-3.5 overflow-x-auto hide-scrollbar pb-1">
             {recentRecipients.map((r) => (
               <button
@@ -451,13 +667,20 @@ const TransferPage = () => {
                 <div className="flex h-[48px] w-[48px] items-center justify-center rounded-full bg-secondary text-[12px] font-bold text-foreground/70 group-hover:bg-primary group-hover:text-primary-foreground transition-colors group-active:scale-90">
                   {r.avatar}
                 </div>
-                <span className="text-[10px] font-medium text-muted-foreground w-14 text-center truncate">{r.name.split(" ")[0]}</span>
+                <span className="text-[10px] font-medium text-muted-foreground w-14 text-center truncate">
+                  {r.name.split(" ")[0]}
+                </span>
               </button>
             ))}
           </div>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.09 }} className="space-y-2">
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.09 }}
+          className="space-y-2"
+        >
           <h3 className="text-label">Saved Beneficiaries</h3>
           <div className="surface-content overflow-hidden">
             {recentRecipients.map((r, i) => (
@@ -469,10 +692,14 @@ const TransferPage = () => {
                   setStep("amount");
                 }}
                 className={`flex items-center gap-3 px-4 py-3.5 w-full hover:bg-surface-secondary transition-colors ${
-                  i < recentRecipients.length - 1 ? "border-b border-surface-border-subtle" : ""
+                  i < recentRecipients.length - 1
+                    ? "border-b border-surface-border-subtle"
+                    : ""
                 }`}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-tertiary text-[10px] font-bold text-foreground/60">{r.avatar}</div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-tertiary text-[10px] font-bold text-foreground/60">
+                  {r.avatar}
+                </div>
                 <div className="flex-1 text-left">
                   <div className="flex items-center gap-1.5">
                     <p className="text-tx-title">{r.name}</p>

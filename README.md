@@ -1,6 +1,10 @@
 # Zenith Pay Wallet
 
-Zenith Pay Wallet is a **full-stack prototype** built with **Next.js**, **React**, and **TypeScript**: wallet UX backed by **Next.js Pages API routes** and small **server modules** you can swap for a real treasury, ledger, and processors **without rewriting screens**.
+**Zenith Pay** is a premium digital wallet built with **Next.js**, **React**, **TypeScript**, and **Tailwind CSS**. The experience covers **end-to-end money flows** (quotes, transfers, wallet balance, activity, simulated funding), **card controls**, **merchant** and **scan-to-pay** journeys, **savings**, **insights**, notifications and tooling routes, and **security-minded UX**—delivered as a cohesive product surface rather than a static mock.
+
+Architecturally it’s a **full-stack prototype**: a **React Router** client using **TanStack Query** talks to **Next.js Pages API** routes under `/api/v1/...`, with thin **server modules** (`transferService`, in-memory ledger, fund simulation, IDs) designed so you can attach **Postgres** ([`sql/zenith_pay_schema.sql`](sql/zenith_pay_schema.sql)), real rails, and processors **without rewriting screens**.
+
+On the platform side the repo includes **pluggable mock telemetry** (swap for PostHog, Segment, etc.), **session-correlated HTTP** (`X-Request-Id`, `X-Zenith-Session`, bearer-shaped `Authorization`), **feature flags**, **React error boundaries**, **Zod-validated public/server env**, **structured logging** on money endpoints, and **HTTP security headers**—giving you a credible demo today and explicit seams for production **identity**, **observability**, and **backend** swap-in.
 
 Use it as:
 
@@ -34,6 +38,8 @@ Copy [`.env.example`](.env.example) to `.env.local` only when you want non-defau
 | Variable | Scope | Purpose |
 | --- | --- | --- |
 | `NEXT_PUBLIC_HIDE_INTEGRATION_CALLOUT` | Client | Hide `IntegrationReadinessBanner` on dashboard and wallet tools |
+| `NEXT_PUBLIC_FF_INSIGHTS_BETA` | Client | When **`true`**, show **Beta** on Insights |
+| `NEXT_PUBLIC_FF_SCHEDULED_BETA` | Client | When **`true`**, show **Beta** on scheduled payments |
 | `ZENITH_DISABLE_SIMULATED_FUNDING` | Server | When **`true`**, `POST /api/v1/wallet/fund` returns **403**. Omit or leave unset locally so developers can still simulate credits; set **`true`** on internet-facing production |
 
 ---

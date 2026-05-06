@@ -8,6 +8,8 @@ import { toast } from "@/hooks/use-toast";
 import type { SimulatedFundingChannel, SimulatedFundResponse } from "@/lib/api/types";
 import { ApiRequestError, postJson } from "@/lib/api/fetchJson";
 import { formatUsdLineFromCents } from "@/lib/format/money";
+import { getTelemetry } from "@/lib/telemetry";
+import { TelemetryEvents } from "@/lib/telemetry/events";
 
 const methods = [
   {
@@ -51,6 +53,11 @@ const FundWalletPage = () => {
       queryClient.invalidateQueries({ queryKey: ["wallet", "balance"] });
       queryClient.invalidateQueries({ queryKey: ["wallet", "transactions"] });
       setLastSuccess(data);
+      getTelemetry().track(TelemetryEvents.WALLET_FUND_SIMULATED, {
+        amountCents: variables.amountCents,
+        channel: variables.channel,
+        reference: data.reference,
+      });
       toast({
         title: "Simulated credit posted",
         description: `${formatUsdLineFromCents(variables.amountCents)} credited · new available ${formatUsdLineFromCents(data.availableCents)}.`,
@@ -62,6 +69,7 @@ const FundWalletPage = () => {
         const err = e.body as { error?: { message?: string } };
         if (err.error?.message) msg = err.error.message;
       }
+      getTelemetry().track(TelemetryEvents.WALLET_FUND_FAILED, { message: msg });
       toast({ title: "Funding failed", description: msg, variant: "destructive" });
     },
   });

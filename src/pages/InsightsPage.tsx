@@ -12,6 +12,7 @@ import { useInsightsDemoQuery } from "@/lib/demo/screenQueries";
 import { formatUsdLineFromCents, formatUsdPosLineFromCents } from "@/lib/format/money";
 import { CardStackSkeleton, InlineQueryError, LoadingListHint } from "@/components/states/AsyncContent";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
+import { isFeatureEnabled } from "@/lib/featureFlags";
 
 const InsightsPage = () => {
   const reduced = usePrefersReducedMotion();
@@ -41,6 +42,11 @@ const InsightsPage = () => {
           <div className="flex items-center gap-1.5 flex-1">
             <Sparkles className="h-4 w-4 text-primary" strokeWidth={2} />
             <h1 className="text-[15px] font-bold text-foreground">Insights</h1>
+            {isFeatureEnabled("insightsBeta") && (
+              <span className="rounded-full bg-primary/12 px-2 py-0.5 text-[8px] font-bold uppercase tracking-wide text-primary">
+                Beta
+              </span>
+            )}
           </div>
           <span className="text-[9px] font-medium text-muted-foreground">AI-assisted</span>
         </div>

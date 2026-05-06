@@ -1,12 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { allowMethods, methodNotAllowed } from "@/server/http/jsonHandler";
+import { readRequestCorrelation } from "@/server/http/requestContext";
 import { createTransfer } from "@/server/transfers/transferService";
+import { logger } from "@/lib/logger";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (!allowMethods(["POST"], req)) {
     methodNotAllowed(res, ["POST"]);
     return;
   }
+
+  const ctx = readRequestCorrelation(req);
+  logger.info("api.transfers.create", { requestId: ctx.requestId, session: ctx.sessionSubject });
 
   try {
     const raw = (req.body && typeof req.body === "object" ? req.body : {}) as {

@@ -1,5 +1,8 @@
 import { ArrowLeft, ChevronRight, User, Shield, CreditCard, Building2, Bell, HelpCircle, LogOut, Smartphone, Globe, FileText, Briefcase, Settings } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getTelemetry } from "@/lib/telemetry";
+import { TelemetryEvents } from "@/lib/telemetry/events";
+import { useAuth } from "@/contexts/AuthContext";
 
 const sections = [
   {
@@ -36,6 +39,9 @@ const sections = [
 ];
 
 const ProfilePage = () => {
+  const navigate = useNavigate();
+  const { signOut, session } = useAuth();
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-2xl border-b border-surface-border-subtle">
@@ -60,7 +66,11 @@ const ProfilePage = () => {
                 style={{ backgroundColor: "hsl(var(--success) / 0.06)" }}>Tier 3</span>
             </div>
             <p className="text-[13px] font-semibold text-primary">@chioma_pay</p>
-            <p className="text-[11px] font-medium text-muted-foreground mt-0.5">chioma@email.com · IDV Verified</p>
+            <p className="text-[11px] font-medium text-muted-foreground mt-0.5">
+              {session.status === "authenticated" && session.email
+                ? `${session.email} · IDV Verified`
+                : "chioma@email.com · IDV Verified"}
+            </p>
           </div>
           <ChevronRight className="h-5 w-5 text-foreground/25" />
         </div>
@@ -103,7 +113,15 @@ const ProfilePage = () => {
         ))}
 
         {/* Logout */}
-        <button className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 w-full shadow-card hover:bg-destructive/5 transition-colors">
+        <button
+          type="button"
+          onClick={() => {
+            getTelemetry().track(TelemetryEvents.LOGOUT, { subject: session.subject });
+            signOut();
+            navigate("/login");
+          }}
+          className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 w-full shadow-card hover:bg-destructive/5 transition-colors interactive-focus min-h-[44px]"
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-destructive/10">
             <LogOut className="h-[18px] w-[18px] text-destructive" strokeWidth={1.8} />
           </div>

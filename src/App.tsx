@@ -1,13 +1,9 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppProviders } from "@/components/providers/AppProviders";
+import { AppErrorBoundary } from "@/components/error-boundary/AppErrorBoundary";
 import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { FavouritesProvider } from "@/contexts/FavouritesContext";
-import { SidebarStateProvider } from "@/contexts/SidebarContext";
 import AppShell from "@/components/layout/AppShell";
+import { APP_NAME } from "@/lib/constants/app";
 import Index from "./pages/Index";
 import TransferPage from "./pages/TransferPage";
 import ScanPage from "./pages/ScanPage";
@@ -40,11 +36,9 @@ import DisputesPage from "./pages/DisputesPage";
 import SessionsPage from "./pages/SessionsPage";
 import NotificationPreferencesPage from "./pages/NotificationPreferencesPage";
 
-const queryClient = new QueryClient();
-
 const App = () => {
   useEffect(() => {
-    document.title = "Zenith Pay";
+    document.title = APP_NAME;
     const faviconSvg = encodeURIComponent(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="#0f766e"/><text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="white">ZP</text></svg>',
     );
@@ -60,19 +54,14 @@ const App = () => {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="zenith-pay-theme">
-      <FavouritesProvider>
-      <SidebarStateProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
+    <AppProviders>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
+        <AppErrorBoundary>
           <Routes>
             {/* Full-screen experiences (no shell) */}
             <Route path="/scan" element={<ScanPage />} />
@@ -120,12 +109,9 @@ const App = () => {
               }
             />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-      </SidebarStateProvider>
-      </FavouritesProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+        </AppErrorBoundary>
+      </BrowserRouter>
+    </AppProviders>
   );
 };
 

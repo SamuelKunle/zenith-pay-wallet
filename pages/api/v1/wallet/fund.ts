@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { allowMethods, methodNotAllowed } from "@/server/http/jsonHandler";
+import { readRequestCorrelation } from "@/server/http/requestContext";
 import { simulatedFund, type SimulatedFundingChannel } from "@/server/wallet/fundService";
+import { logger } from "@/lib/logger";
 
 function parseChannel(raw: unknown): SimulatedFundingChannel | null {
   const s = typeof raw === "string" ? raw : "";
@@ -13,6 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     methodNotAllowed(res, ["POST"]);
     return;
   }
+
+  const ctx = readRequestCorrelation(req);
+  logger.info("api.wallet.fund", { requestId: ctx.requestId, session: ctx.sessionSubject });
 
   if (process.env.ZENITH_DISABLE_SIMULATED_FUNDING === "true") {
     res.status(403).json({
