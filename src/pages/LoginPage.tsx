@@ -13,7 +13,7 @@ const ease = motionConfig.ease;
 type AuthState = "idle" | "loading" | "error" | "locked";
 
 /** Demo fallback when biometrics is used without typing an identifier first (no real WebAuthn). */
-const DEMO_IDENTIFIER_FALLBACK = "chioma@email.com";
+const DEMO_IDENTIFIER_FALLBACK = "olivia.clark@example.com";
 
 const LoginPage = () => {
   const { signInWithCredentials, isAuthenticated } = useAuth();
@@ -214,7 +214,7 @@ const LoginPage = () => {
                 id="login-identifier"
                 name="identifier"
                 type="text"
-                placeholder="08012345678 or chioma@email.com"
+                placeholder="+1 202 555 0147 or olivia.clark@example.com"
                 className="input-premium"
                 value={identifier}
                 onChange={(e) => {
